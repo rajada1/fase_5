@@ -1,0 +1,13 @@
+-------------------------------------------------------------------------------
+Test set: com.architecture.upload.application.UploadUseCaseTest
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 2.844 s <<< FAILURE! -- in com.architecture.upload.application.UploadUseCaseTest
+com.architecture.upload.application.UploadUseCaseTest.shouldUploadDiagramAndInitializeWithReceivedStatus -- Time elapsed: 2.766 s <<< ERROR!
+java.lang.IllegalStateException: Transaction synchronization is not active
+	at org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(TransactionSynchronizationManager.java:277)
+	at com.architecture.upload.application.UploadUseCase.uploadDiagram(UploadUseCase.java:39)
+	at com.architecture.upload.application.UploadUseCaseTest.shouldUploadDiagramAndInitializeWithReceivedStatus(UploadUseCaseTest.java:44)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+

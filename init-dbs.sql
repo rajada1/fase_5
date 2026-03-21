@@ -1,0 +1,3 @@
+CREATE DATABASE upload_db;
+CREATE DATABASE report_db;
+CREATE DATABASE status_db;

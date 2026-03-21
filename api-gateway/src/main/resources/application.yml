@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    import: "optional:aws-secretsmanager:/secret/api-gateway"
+  cloud:
+    gateway:
+      routes:
+        - id: upload-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/upload/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: uploadServiceCB
+                fallbackUri: forward:/fallback/upload
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+        - id: report-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/reports/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: reportServiceCB
+                fallbackUri: forward:/fallback/report
+        - id: status-service
+          uri: http://localhost:8085
+          predicates:
+              - Path=/api/v1/status/**
+          filters:
+              - name: CircuitBreaker
+                args:
+                    name: statusServiceCB
+                    fallbackUri: forward:/fallback/status
+              - name: RequestRateLimiter
+                args:
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+    instances:
+      uploadServiceCB:
+        baseConfig: default
+      reportServiceCB:
+        baseConfig: default
+      statusServiceCB:
+        baseConfig: default
+
+# JWT Validation Config via AWS Cognito
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://cognito-idp.${AWS_REGION:us-east-1}.amazonaws.com/${COGNITO_USER_POOL_ID:mock-pool-id}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized

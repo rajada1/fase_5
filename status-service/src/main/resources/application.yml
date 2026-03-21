@@ -1,0 +1,29 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: status-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:status_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+aws:
+  region: us-east-1
+  sqs:
+    file-uploaded-queue-url: http://localhost:4566/000000000000/file-uploaded-queue-dev
+    diagram-processed-queue-url: http://localhost:4566/000000000000/diagram-processed-queue-dev
+    analysis-completed-queue-url: http://localhost:4566/000000000000/analysis-completed-queue-dev
+  # Localstack configuration for local development
+  endpoint: http://localhost:4566
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics

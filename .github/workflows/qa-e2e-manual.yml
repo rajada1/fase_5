@@ -1,0 +1,110 @@
+name: QA E2E
+
+on:
+    push:
+        branches:
+            - homolog
+            - "release/**"
+        paths:
+            - "api-gateway/**"
+            - "upload-service/**"
+            - "processing-service/**"
+            - "ai-analysis-service/**"
+            - "report-service/**"
+            - "status-service/**"
+            - "test_qa_api.ps1"
+            - ".github/workflows/qa-e2e-manual.yml"
+    schedule:
+        - cron: "0 9 * * 1"
+    workflow_dispatch:
+        inputs:
+            base_url:
+                description: "Base URL da API Gateway (ex.: http://localhost:8080/api/v1)"
+                required: false
+                default: "http://localhost:8080/api/v1"
+                type: string
+            max_polling_attempts:
+                description: "Quantidade máxima de tentativas de polling"
+                required: false
+                default: "20"
+                type: string
+            polling_interval_seconds:
+                description: "Intervalo entre tentativas de polling (segundos)"
+                required: false
+                default: "3"
+                type: string
+            auth_header:
+                description: "Header Authorization completo (opcional). Ex.: Basic xxx ou Bearer yyy"
+                required: false
+                default: ""
+                type: string
+
+permissions:
+    contents: read
+
+jobs:
+    e2e-qa:
+        name: Executar QA E2E
+        runs-on: self-hosted
+        concurrency:
+            group: qa-e2e-${{ github.ref }}
+            cancel-in-progress: false
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Executar script E2E (manual)
+              if: github.event_name == 'workflow_dispatch'
+              shell: pwsh
+              env:
+                  QA_AUTH_HEADER: ${{ inputs.auth_header }}
+              run: |
+                  New-Item -ItemType Directory -Path "qa-e2e-logs" -Force | Out-Null
+                  $baseUrl = "${{ inputs.base_url }}"
+                  $maxAttempts = [int]"${{ inputs.max_polling_attempts }}"
+                  $interval = [int]"${{ inputs.polling_interval_seconds }}"
+
+                  Write-Host "Iniciando QA E2E..."
+                  Write-Host "Evento: ${{ github.event_name }}"
+                  Write-Host "Base URL: $baseUrl"
+                  Write-Host "Max attempts: $maxAttempts"
+                  Write-Host "Polling interval: $interval"
+
+                  & ./test_qa_api.ps1 -BaseUrl $baseUrl -MaxPollingAttempts $maxAttempts -PollingIntervalSeconds $interval *>&1 |
+                      Tee-Object -FilePath "qa-e2e-logs/qa-e2e-manual.log"
+
+                  $scriptExitCode = $LASTEXITCODE
+                  if ($scriptExitCode -ne 0) {
+                      exit $scriptExitCode
+                  }
+
+            - name: Executar script E2E (contínuo)
+              if: github.event_name != 'workflow_dispatch'
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Path "qa-e2e-logs" -Force | Out-Null
+                  $baseUrl = "http://localhost:8080/api/v1"
+                  $maxAttempts = 20
+                  $interval = 3
+
+                  Write-Host "Iniciando QA E2E..."
+                  Write-Host "Evento: ${{ github.event_name }}"
+                  Write-Host "Base URL: $baseUrl"
+                  Write-Host "Max attempts: $maxAttempts"
+                  Write-Host "Polling interval: $interval"
+
+                  & ./test_qa_api.ps1 -BaseUrl $baseUrl -MaxPollingAttempts $maxAttempts -PollingIntervalSeconds $interval *>&1 |
+                      Tee-Object -FilePath "qa-e2e-logs/qa-e2e-continuo.log"
+
+                  $scriptExitCode = $LASTEXITCODE
+                  if ($scriptExitCode -ne 0) {
+                      exit $scriptExitCode
+                  }
+
+            - name: Publicar artifact de logs E2E
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: qa-e2e-logs-${{ github.run_id }}
+                  path: qa-e2e-logs/
+                  if-no-files-found: warn

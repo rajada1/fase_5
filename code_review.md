@@ -1,230 +1,129 @@
 # Code Review Técnico — Projeto de Análise de Diagramas Arquiteturais
 
-Data: 2026-03-21
+Data: 2026-03-22
 
 ## 1) Resumo Executivo
 
-O projeto apresenta uma base **boa e funcional** para o objetivo proposto, com arquitetura de microsserviços, esteira assíncrona via SNS/SQS, IA integrada ao fluxo e pipelines CI/CD completos.
+Com base nos requisitos de `docs/command/analise.md`, o projeto apresenta **aderência alta** no núcleo funcional e de arquitetura (microsserviços, fluxo assíncrono, IA integrada, Docker/CI/CD).
 
-Status geral da revisão: **Aprovado com ressalvas**.
+Status geral: **Aprovado com ressalvas (pós-ajustes)**.
 
-Principais pontos positivos:
-- Fluxo ponta a ponta implementado (upload → processamento OCR → análise IA → relatório → consulta de status).
-- Boas práticas relevantes já aplicadas (Transactional Outbox no upload, idempotência/dedupe em serviços Python, circuit breaker e rate limit no gateway).
-- Testes automatizados existentes e executáveis por serviço.
-
-Principais lacunas:
-- Nem todos os serviços possuem banco próprio (requisito técnico estrito não atendido para serviços Python).
-- Padronização final de nomenclatura de tracing (`traceId` vs `correlationId`) ainda pode ser unificada.
+Riscos mais relevantes para fechamento completo dos requisitos:
+- Requisito estrito de “banco próprio por serviço” parcialmente atendido.
+- Segurança de comunicação leste-oeste entre serviços ainda pode evoluir para ambiente produtivo hardenizado.
 
 ---
 
-## 2) Aderência aos Requisitos Funcionais
+## 2) Matriz de Conformidade por Requisito
 
-### 2.1 Upload de diagrama (imagem/PDF)
-**Status: Atendido**
+### 2.1 Requisitos Funcionais
 
-Evidências:
-- `upload-service` aceita `image/jpeg`, `image/png` e `application/pdf`.
-- Validações de arquivo vazio, filename inválido/path traversal e content-type.
+| Requisito | Status | Evidência | Gaps / Observações |
+|---|---|---|---|
+| Upload de diagrama (imagem/PDF) | **Atende** | `upload-service` valida MIME (`image/jpeg`, `image/png`, `application/pdf`), tamanho, nome, path traversal e assinatura binária (magic bytes) em `UploadController` | Sem gap crítico.
+| Criação de processo de análise | **Atende** | `UploadUseCase` persiste metadados e enfileira evento via outbox (`OutboxServiceAdapter` + `OutboxEventPublisher`) | Sem gap crítico.
+| Consulta de status (Recebido/Em processamento/Analisado/Erro) | **Atende** | Endpoint `GET /api/v1/status/{diagramId}` e atualização por eventos no `status-service` em PT-BR | Contrato PT-BR consolidado em código, testes e documentação.
+| Geração de relatório com componentes/riscos/recomendações | **Atende** | `ai-analysis-service` retorna `AnalysisResult` e `report-service` persiste/expoe relatório (`GenerateReportUseCase`, `ReportController`) | Sem gap crítico no fluxo principal.
 
-### 2.2 Criação do processo de análise
-**Status: Atendido**
+### 2.2 Requisitos Técnicos
 
-Evidências:
-- Upload persiste metadado com status inicial `RECEIVED`.
-- Publicação de evento assíncrono via outbox para disparar processamento.
+| Requisito | Status | Evidência | Gaps / Observações |
+|---|---|---|---|
+| Arquitetura de microsserviços | **Atende** | Serviços independentes: gateway, upload, processing, ai-analysis, report, status | Sem gap crítico.
+| Comunicação REST | **Atende** | Endpoints em upload/status/report e roteamento no gateway | Sem gap crítico.
+| Fluxo assíncrono (fila/mensageria) | **Atende** | SNS/SQS em upload→processing→ai-analysis→report/status; pollers dedicados | Sem gap crítico.
+| Clean/Hexagonal | **Parcial** | Serviços Java seguem `application/domain/infrastructure/interfaces`; Python organizado por módulos | Python não explicita fronteiras hexagonais com o mesmo rigor.
+| Responsabilidade clara por serviço | **Atende** | Upload, OCR, IA, relatório e status separados por bounded context | Sem gap crítico.
+| Banco de dados próprio por serviço | **Atende com ressalva documentada** | `init-dbs.sql` cria `upload_db`, `report_db`, `status_db`; exceção para serviços stateless formalizada em ADR | Decisão registrada em `docs/adr/ADR-001-servicos-stateless-e-banco-proprio.md`.
+| Testes automatizados por serviço | **Atende** | Testes unitários Java/Python e E2E validados na rodada (`51 passed / 0 failed` + execução `test_qa_api.ps1` com fluxo completo e edge cases), com workflow contínuo (`push` homolog/release + `schedule`) e manual, incluindo publicação de artifact de logs | Sem gap crítico.
 
-### 2.3 Consulta de status do processamento
-**Status: Atendido**
+### 2.3 IA no Fluxo (controle, segurança e avaliação)
 
-Evidências:
-- Endpoint de status existe e funciona (`status-service`).
-- Estados padronizados no fluxo: `RECEIVED` → `PROCESSING` → `ANALYZED`, com `ERROR` para eventos de falha (`*_FAILED`).
+| Requisito | Status | Evidência | Gaps / Observações |
+|---|---|---|---|
+| IA parte do fluxo (não script isolado) | **Atende** | IA acionada por evento em `ai-analysis-service/app/services/sqs_poller.py` | Sem gap crítico.
+| Pipeline claro de IA | **Atende** | OCR -> evento processado -> análise LLM -> evento concluído/falha -> persistência no report | Sem gap crítico.
+| Controle de entrada/saída (guardrails) | **Atende** | Sanitização, truncamento e resposta JSON no `llm_service.py` | Limites e previsibilidade documentados no README.
+| Tratamento de falhas da IA | **Atende** | Diferencia falha transitória e não-retryable; publica `ANALYSIS_FAILED` | Fallback mock removido, sem falso sucesso em erro de provedor.
+| Persistência do resultado IA e geração do relatório | **Atende** | `report-service` consome análise e salva por `diagramId` | Sem gap crítico.
+| Discussão de limitações do modelo | **Atende** | README contém seção formal de limitações do modelo de IA | Sem gap crítico.
 
-### 2.4 Geração de relatório com componentes, riscos e recomendações
-**Status: Atendido**
+### 2.4 Infraestrutura, DevOps, Qualidade e Observabilidade
 
-Evidências:
-- `ai-analysis-service` produz estrutura com `components`, `risks`, `recommendations`.
-- `report-service` consome evento `ANALYSIS_COMPLETED`, persiste e expõe via endpoint REST.
+| Requisito | Status | Evidência | Gaps / Observações |
+|---|---|---|---|
+| Docker | **Atende** | Dockerfiles por serviço + `docker-compose.yml` | Sem gap crítico.
+| Docker Compose/K8s | **Atende** | Ambiente local com LocalStack/Postgres/Redis via Compose | Sem gap crítico.
+| CI/CD com build, testes e deploy | **Atende** | `services-ci-cd.yml` e `terraform-infra.yml` (build/test/deploy + plan/apply) | Sem gap crítico.
+| Logs estruturados | **Atende com ressalva** | Correlação por `diagramId`, `eventType`, `correlationId` e docs de observabilidade | Padronizar definitivamente nomenclatura de tracing entre serviços.
+| Tratamento de erros | **Atende** | Handlers Java, descarte de payload inválido, retries/dedupe em pollers | Evoluir alerta operacional de DLQ/retry em produção.
+| Testes unitários | **Atende** | Suítes Java/Python e E2E validadas na rodada (`51 passed / 0 failed`) | Sem gap crítico.
+| README explicativo | **Atende** | Fluxo e operação descritos, incluindo seção formal de limitações do modelo de IA | Sem gap crítico.
 
----
+### 2.5 Seção Obrigatória de Segurança
 
-## 3) Aderência aos Requisitos Técnicos
-
-### 3.1 Arquitetura baseada em microsserviços
-**Status: Atendido**
-
-Serviços identificados: API Gateway, Upload, Processing, AI Analysis, Report, Status.
-
-### 3.2 Comunicação REST + fluxo assíncrono
-**Status: Atendido**
-
-Evidências:
-- REST no gateway e serviços de borda.
-- Fluxo assíncrono em SNS/SQS entre upload/processamento/análise/relatório/status.
-
-### 3.3 Clean Architecture / Hexagonal
-**Status: Parcialmente atendido**
-
-Evidências:
-- Serviços Java apresentam separação por camadas (`application`, `domain`, `infrastructure`, `interfaces`).
-- Serviços Python têm boa organização modular, porém sem a mesma explicitude de fronteiras hexagonais.
-
-### 3.4 Responsabilidade clara por serviço
-**Status: Atendido**
-
-### 3.5 Banco de dados próprio por serviço
-**Status: Parcialmente atendido**
-
-Evidências:
-- `upload-service`, `report-service` e `status-service` usam bancos lógicos dedicados (`upload_db`, `report_db`, `status_db`).
-- `processing-service` e `ai-analysis-service` não possuem persistência própria (apenas integração com S3/SQS/SNS e Redis opcional para dedupe).
-
-### 3.6 Testes automatizados por serviço
-**Status: Atendido com ressalvas**
-
-Evidências:
-- Java: testes em `api-gateway`, `upload-service`, `report-service`, `status-service`.
-- Python: testes em `processing-service` e `ai-analysis-service`.
-
-Ressalva:
-- Não há testes automatizados para execução integrada end-to-end do pipeline completo.
+| Requisito | Status | Evidência | Gaps / Observações |
+|---|---|---|---|
+| Requisitos básicos de segurança adotados | **Atende com ressalva** | Gateway com OAuth2/JWT e checklist AWS/GitHub/OIDC | Gateway local permite `/api/v1/**` para testes; documentar escopo e hardening de produção.
+| Validação de entradas não confiáveis | **Atende** | Validação robusta de upload (MIME, extensão, tamanho, assinatura do arquivo) e descarte de payload malformado nos pollers | Sem gap crítico.
+| Uso controlado de IA (escopo/previsibilidade) | **Atende** | Prompt com formato JSON, sanitização/limites e seção de limitações no README | Sem gap crítico.
+| Tratamento seguro de falhas de IA | **Atende** | Eventos de falha e atualização de status para erro, sem fallback de sucesso simulado | Sem gap crítico.
+| Segurança na comunicação entre serviços | **Parcial** | Mensageria AWS + autenticação no gateway | Falta detalhar mTLS/controles de rede internos no ambiente final.
+| Riscos/limitações de segurança documentados | **Parcial** | Itens em docs de QA/checklist | Consolidar seção única de riscos e limitações na documentação principal.
 
 ---
 
-## 4) IA no Fluxo, Segurança e Guardrails
+## 3) Evidências Técnicas Principais (arquivos)
 
-### 4.1 IA integrada ao fluxo sistêmico
-**Status: Atendido**
-
-Evidências:
-- IA é acionada por evento assíncrono do `processing-service`.
-- Resultado da IA é publicado em evento e persistido no `report-service`.
-
-### 4.2 Guardrails de entrada/saída
-**Status: Atendido (nível bom para MVP)**
-
-Evidências:
-- Sanitização de entrada (`control chars`, neutralização de delimitadores, truncamento por limite).
-- Instrução anti prompt injection no system prompt.
-- Resposta exigida em JSON (`response_format: json_object`) e validação por modelo Pydantic.
-
-### 4.3 Tratamento de falhas de IA
-**Status: Atendido com ressalvas**
-
-Evidências:
-- Erros transitórios da API da Gemini são tratados como retryáveis (reentrega SQS).
-- Erros não-retryables são diferenciados.
-- Erros não-retryables e payloads inválidos geram evento `ANALYSIS_FAILED`, refletindo estado `ERROR` no `status-service`.
-
-Ressalva:
-- Mensagens sem `diagramId` não conseguem propagar erro por entidade de negócio (não há identificador para correlacionar).
-
-### 4.4 Discussão de limitações do modelo
-**Status: Não atendido de forma explícita na documentação principal**
-
-Gap:
-- README e docs descrevem operação e arquitetura, mas não detalham claramente limites de acurácia, viés, falso-positivo/negativo e fronteiras da análise IA.
+- `upload-service/src/main/java/com/architecture/upload/interfaces/rest/UploadController.java`
+- `upload-service/src/main/java/com/architecture/upload/application/UploadUseCase.java`
+- `upload-service/src/main/java/com/architecture/upload/infrastructure/outbox/OutboxServiceAdapter.java`
+- `upload-service/src/main/java/com/architecture/upload/infrastructure/outbox/OutboxEventPublisher.java`
+- `processing-service/app/services/sqs_poller.py`
+- `ai-analysis-service/app/services/llm_service.py`
+- `ai-analysis-service/app/services/sqs_poller.py`
+- `report-service/src/main/java/com/architecture/report/infrastructure/messaging/SqsPollerService.java`
+- `report-service/src/main/java/com/architecture/report/application/GenerateReportUseCase.java`
+- `status-service/src/main/java/com/architecture/status/infrastructure/messaging/SqsPollerService.java`
+- `status-service/src/main/java/com/architecture/status/application/UpdateStatusUseCase.java`
+- `.github/workflows/services-ci-cd.yml`
+- `.github/workflows/terraform-infra.yml`
+- `docker-compose.yml`
+- `init-dbs.sql`
 
 ---
 
-## 5) Infraestrutura, CI/CD e Observabilidade
+## 4) Evidência de Testes (rodada atual)
 
-### 5.1 Docker / Docker Compose
-**Status: Atendido**
+Execução consolidada por ferramenta de testes do workspace:
+- **51 passed / 0 failed**.
 
-Evidências:
-- Dockerfiles por serviço.
-- `docker-compose.yml` com LocalStack, Postgres e Redis.
+Execução E2E ponta a ponta validada:
+- `test_qa_api.ps1` concluído com sucesso (upload `Recebido`, progressão para `Analisado`, relatório recuperado, bloqueio de MIME spoofing e de arquivo acima do limite).
 
-### 5.2 CI/CD (build, testes e deploy)
-**Status: Atendido**
-
-Evidências:
-- Workflow de serviços com build/test por serviço, build/push de imagem e deploy ECS.
-- Workflow Terraform com `init`, `fmt`, `validate`, `plan` e `apply` em `main`.
-
-### 5.3 Logs estruturados
-**Status: Atendido**
-
-Evidências:
-- Pollers SQS Java e Python com logs correlacionáveis por `diagramId/diagram_id`, `eventType/event_type` e `queueUrl/queue_url`.
-- Endpoints REST críticos (`upload`, `status`, `reports`) com logs de entrada/saída contendo identificadores de negócio.
-- `X-Correlation-Id` no fluxo REST e `correlationId` propagado no pipeline assíncrono (upload → processing → ai-analysis → report/status).
-
-Gap:
-- Consolidar padrão definitivo de chave de rastreio entre squads (`traceId`/`correlationId`) e dashboards.
-
-### 5.4 Tratamento de erros
-**Status: Atendido com pontos de melhoria**
-
-Pontos fortes:
-- Handlers e testes para cenários de erro nos serviços Java.
-- Estratégias de retry e dedupe em pontos críticos.
-
-Ponto de atenção:
-- Consolidar monitoramento de DLQ/retentativas com alertas no ambiente produtivo.
-
-### 5.5 README explicativo
-**Status: Atendido**
+Conclusão da rodada: contrato PT-BR, segurança de upload e suíte automatizada estão alinhados.
 
 ---
 
-## 6) Evidências de Validação Executadas na Revisão
+## 5) Achados Priorizados
 
-Execuções realizadas no ambiente local:
-- `processing-service`: `python -m pytest -q` → **13 passed**.
-- `ai-analysis-service`: `python -m pytest -q` → **13 passed**.
-- `status-service`: `mvn -q test` → **exit code 0**.
-- `report-service`: `mvn -q test` → **exit code 0**.
-- `upload-service`: `mvn -q test` → **exit code 0**.
-- `api-gateway`: `mvn -q test` → **exit code 0**.
+### P1 (Média prioridade)
+1. **Padronizar campos de rastreio e logging estruturado** entre todos os serviços.
+2. **Evoluir segurança de comunicação interna** para ambientes produtivos (segmentação de rede/controles adicionais).
 
-Adições validadas nesta rodada:
-- Testes de fluxo dos pollers Python (sucesso, payload inválido e falha não-retryable) em ambos os serviços.
-- Hardening de descarte de payload malformado no poller do `report-service`.
-- Logs de correlação em pollers SQS e endpoints REST Java.
+### P2 (Baixa prioridade)
+3. **Definir política de retenção e revisão periódica dos artifacts E2E** para auditoria operacional contínua.
 
 ---
 
-## 7) Achados Prioritários
+## 6) Recomendações Objetivas (próximo sprint)
 
-### P0 (Alta)
-1. **Padronizar e fechar máquina de estados de negócio**
-   - **Concluído**: estados unificados para `RECEIVED` → `PROCESSING` → `ANALYZED` e `ERROR` para falhas.
-
-2. **Garantir tratamento de mensagens inválidas/venenosas em todos os pollers**
-   - **Concluído**: payloads malformados/inválidos são descartados explicitamente, reduzindo risco de poison loop.
-
-### P1 (Média)
-3. **Fechar requisito “banco por serviço”**
-   - Formalizar exceção arquitetural para serviços stateless ou introduzir persistência mínima onde necessário.
-
-4. **Evoluir logs para formato estruturado com correlação**
-   - **Concluído**: correlação de negócio e de requisição aplicada em REST e mensageria (`X-Correlation-Id`/`correlationId`).
-
-5. **Documentar limitações da IA e critérios de qualidade**
-   - Limites de interpretação de diagramas, taxa de erro esperada, casos fora de escopo.
-
-### P2 (Baixa)
-6. **Adicionar testes de integração end-to-end da esteira assíncrona**
-   - Cobrir o fluxo completo em ambiente local com LocalStack.
+1. Padronizar campos de observabilidade/logging entre serviços Java e Python.
+2. Evoluir hardening de comunicação interna para produção.
+3. Definir retenção e rotina de revisão dos artifacts de logs/resultados do workflow `qa-e2e-manual.yml`.
 
 ---
 
-## 8) Recomendações Objetivas (Próximo Sprint)
+## 7) Conclusão
 
-1. Padronizar nomenclatura final do identificador de rastreio (`traceId`/`correlationId`) em métricas, logs e contratos.
-2. Integrar alertas de DLQ e retentativas com Prometheus/Alertmanager em ambiente alvo.
-3. Definir ADR para “serviços stateless sem DB próprio” ou adicionar persistência mínima por serviço.
-4. Finalizar padrão único de logging estruturado entre serviços (campos e formato homogêneos).
-5. Incluir seção formal “Limitações do Modelo de IA” no README/docs.
-6. Criar suíte de teste integrada do pipeline completo.
-
----
-
-## 9) Conclusão
-
-O projeto está tecnicamente consistente e operacional para o objetivo acadêmico/prototipação avançada, com vários elementos de engenharia já maduros (outbox, dedupe, CI/CD por serviço, IaC). Para produção com menor risco, os próximos passos devem priorizar **consistência de estado**, **resiliência de mensageria para payload inválido**, **logs estruturados** e **governança explícita de limitações da IA**.
+O projeto está bem estruturado e com alta conformidade aos requisitos da análise, com implementação madura de microsserviços, mensageria e CI/CD. Após os ajustes desta rodada, os principais pontos críticos de contrato de status e tratamento de falhas de IA foram fechados; os próximos passos são de **maturidade arquitetural e operacional**.

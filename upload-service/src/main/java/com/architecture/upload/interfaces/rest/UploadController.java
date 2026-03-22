@@ -111,12 +111,14 @@ public class UploadController {
                                         .body(new UploadResponseDTO(null, "BAD_REQUEST",
                                                         "Tipo de arquivo não suportado. Apenas imagens e PDF são permitidos."));
                 }
-                
+
                 String lowerCaseFileName = cleanFileName.toLowerCase();
-                boolean isExtensionValid = (contentType.equals("application/pdf") && lowerCaseFileName.endsWith(".pdf")) ||
-                                           (contentType.equals("image/png") && lowerCaseFileName.endsWith(".png")) ||
-                                           (contentType.equals("image/jpeg") && (lowerCaseFileName.endsWith(".jpg") || lowerCaseFileName.endsWith(".jpeg")));
-                
+                boolean isExtensionValid = (contentType.equals("application/pdf") && lowerCaseFileName.endsWith(".pdf"))
+                                ||
+                                (contentType.equals("image/png") && lowerCaseFileName.endsWith(".png")) ||
+                                (contentType.equals("image/jpeg") && (lowerCaseFileName.endsWith(".jpg")
+                                                || lowerCaseFileName.endsWith(".jpeg")));
+
                 if (!isExtensionValid) {
                         log.warn(
                                         "Tentativa de upload com extensão incompatível (Spoofing). correlationId={} fileName={} contentType={}",
@@ -129,6 +131,17 @@ public class UploadController {
                 }
 
                 try {
+                        if (!isFileSignatureValid(file, contentType)) {
+                                log.warn(
+                                                "Tentativa de upload com assinatura incompatível (MIME spoofing). correlationId={} fileName={} contentType={}",
+                                                correlationId,
+                                                cleanFileName,
+                                                contentType);
+                                return ResponseEntity.badRequest().header(CORRELATION_ID_HEADER, correlationId)
+                                                .body(new UploadResponseDTO(null, "BAD_REQUEST",
+                                                                "Conteúdo do arquivo não corresponde ao tipo informado (MIME spoofing detectado)."));
+                        }
+
                         Diagram diagram = uploadUseCase.uploadDiagram(
                                         cleanFileName,
                                         file.getInputStream(),
@@ -157,12 +170,12 @@ public class UploadController {
                                         cleanFileName,
                                         contentType,
                                         fileSize,
-                                        "RECEIVED");
+                                        "Recebido");
 
                         return ResponseEntity.accepted().header(CORRELATION_ID_HEADER, correlationId)
                                         .body(new UploadResponseDTO(
                                                         diagram.getId(),
-                                                        "RECEIVED",
+                                                        "Recebido",
                                                         "Arquivo enviado com sucesso e processamento iniciado."));
 
                 } catch (Exception e) {
@@ -188,5 +201,43 @@ public class UploadController {
                         return UUID.randomUUID().toString();
                 }
                 return correlationIdHeader.trim();
+        }
+
+        private boolean isFileSignatureValid(MultipartFile file, String contentType) {
+                try {
+                        byte[] bytes = file.getBytes();
+
+                        if ("application/pdf".equals(contentType)) {
+                                return startsWith(bytes, new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D }); // %PDF-
+                        }
+
+                        if ("image/png".equals(contentType)) {
+                                return startsWith(bytes,
+                                                new byte[] { (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+                        }
+
+                        if ("image/jpeg".equals(contentType)) {
+                                return startsWith(bytes, new byte[] { (byte) 0xFF, (byte) 0xD8, (byte) 0xFF });
+                        }
+
+                        return false;
+                } catch (Exception e) {
+                        log.warn("Falha ao validar assinatura do arquivo: {}", e.getMessage());
+                        return false;
+                }
+        }
+
+        private boolean startsWith(byte[] source, byte[] prefix) {
+                if (source == null || source.length < prefix.length) {
+                        return false;
+                }
+
+                for (int index = 0; index < prefix.length; index++) {
+                        if (source[index] != prefix[index]) {
+                                return false;
+                        }
+                }
+
+                return true;
         }
 }

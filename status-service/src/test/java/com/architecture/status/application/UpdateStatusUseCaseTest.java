@@ -27,22 +27,23 @@ class UpdateStatusUseCaseTest {
 
     @Test
     void shouldSuccessfullyTransitionFromReceivedToProcessing() {
-        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("RECEIVED").build();
+        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("Recebido").build();
         when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
 
-        updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING");
+        updateStatusUseCase.updateStatus(DIAGRAM_ID, "Em processamento");
 
         verify(statusRepository)
-                .save(argThat(status -> "PROCESSING".equals(status.getState()) && status.getLastUpdatedAt() != null));
+                .save(argThat(
+                        status -> "Em processamento".equals(status.getState()) && status.getLastUpdatedAt() != null));
     }
 
     @Test
     void shouldThrowExceptionWhenTransitioningBackwards() {
-        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("ANALYZED").build();
+        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("Analisado").build();
         when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING"));
+                () -> updateStatusUseCase.updateStatus(DIAGRAM_ID, "Em processamento"));
 
         assertTrue(exception.getMessage().contains("Transição de status inválida"));
         verify(statusRepository, never()).save(any());
@@ -61,18 +62,18 @@ class UpdateStatusUseCaseTest {
     void shouldCreateNewStateIfNotFound() {
         when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.empty());
 
-        updateStatusUseCase.updateStatus(DIAGRAM_ID, "RECEIVED");
+        updateStatusUseCase.updateStatus(DIAGRAM_ID, "Recebido");
 
         verify(statusRepository).save(
-                argThat(status -> "RECEIVED".equals(status.getState()) && status.getDiagramId().equals(DIAGRAM_ID)));
+                argThat(status -> "Recebido".equals(status.getState()) && status.getDiagramId().equals(DIAGRAM_ID)));
     }
 
     @Test
     void shouldIgnoreDuplicateStateTransition() {
-        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("PROCESSING").build();
+        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("Em processamento").build();
         when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
 
-        updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING");
+        updateStatusUseCase.updateStatus(DIAGRAM_ID, "Em processamento");
 
         verify(statusRepository, never()).save(any());
     }

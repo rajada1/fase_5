@@ -85,56 +85,53 @@ def _is_retryable_provider_error(message: str) -> bool:
     )
 
 def analyze_architecture(extracted_data: str) -> AnalysisResult:
+    safe_extracted_data = _sanitize_extracted_data(extracted_data)
+    if not safe_extracted_data:
+        raise NonRetryableAnalysisError("Texto extraído vazio ou inválido para análise.")
+
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+    system_instruction = (
+        "Você é um Arquiteto de Software Cloud especialista. "
+        "Responda APENAS com um JSON válido seguindo exatamente este schema: "
+        '{"components":["string"],"risks":[{"type":"string","description":"string"}],"recommendations":["string"]}'
+    )
+
+    user_prompt = f"Analise o texto extraído abaixo:\n{safe_extracted_data}\n"
+
     try:
-        safe_extracted_data = _sanitize_extracted_data(extracted_data)
-        if not safe_extracted_data:
-            raise NonRetryableAnalysisError("Texto extraído vazio ou inválido para análise.")
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                response_mime_type="application/json",
+                temperature=0.2,
+            ),
+        )
+    except Exception as provider_error:
+        message = str(provider_error)
+        logger.error("Falha no provedor LLM: %s", message)
 
-        try:
-            client = genai.Client(
-                api_key=settings.GEMINI_API_KEY
-            )
+        if _is_non_retryable_quota_error(message):
+            raise NonRetryableAnalysisError(
+                f"Falha não-retryable na análise de arquitetura: {message}"
+            ) from provider_error
 
-            system_instruction = (
-                "Você é um Arquiteto de Software Cloud especialista. "
-                "Responda APENAS com um JSON válido seguindo exatamente este schema: "
-                '{"components":["string"],"risks":[{"type":"string","description":"string"}],"recommendations":["string"]}'
-            )
-            
-            user_prompt = (
-                f"Analise o texto extraído abaixo:\n{safe_extracted_data}\n"
-            )
+        if _is_retryable_provider_error(message):
+            raise
 
-            response = client.models.generate_content(
-                model=settings.GEMINI_MODEL,
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    response_mime_type="application/json",
-                    temperature=0.2,
-                ),
-            )
-            
-            result_content = _extract_json_content(getattr(response, "text", ""))
-            logger.info(f"Resposta bruta da Gemini: {result_content}")
-            
-            data = json.loads(result_content)
-            return AnalysisResult(**data)
-        except Exception as gemini_err:
-            logger.warning(f"Falha na Gemini ({gemini_err}). Usando MOCK para continuidade do QA local.")
-            mock_data = {
-                "components": ["Load Balancer", "Web Server", "Database"],
-                "risks": [
-                    {"type": "SPOF", "description": "Single instance database detected."},
-                    {"type": "SECURITY", "description": "Public subnet for database is not recommended."}
-                ],
-                "recommendations": [
-                    "Migrate database to Multi-AZ RDS.",
-                    "Use Private Subnets for database instances."
-                ]
-            }
-            return AnalysisResult(**mock_data)
+        raise NonRetryableAnalysisError(
+            f"Falha não-retryable na análise de arquitetura: {message}"
+        ) from provider_error
 
-    except Exception as e:
-        logger.error(f"Erro crítico na análise do diagrama: {str(e)}")
-        raise e
+    result_content = _extract_json_content(getattr(response, "text", ""))
+    logger.info("Resposta bruta da Gemini: %s", result_content)
+
+    try:
+        data = json.loads(result_content)
+        return AnalysisResult(**data)
+    except Exception as parse_error:
+        raise NonRetryableAnalysisError(
+            f"Falha não-retryable na análise de arquitetura: resposta inválida do modelo ({parse_error})"
+        ) from parse_error

@@ -26,6 +26,9 @@ import static org.mockito.Mockito.when;
 class UploadControllerTest {
 
     private static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
+    private static final byte[] VALID_PNG_BYTES = new byte[] {
+            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00
+    };
 
     @Mock
     private UploadUseCase uploadUseCase;
@@ -104,9 +107,24 @@ class UploadControllerTest {
         ResponseEntity<UploadResponseDTO> response = uploadController.uploadDiagram(file);
 
         // Se a validação for robusta, deve falhar no spoofing.
-        // O código atual do Controller apenas olha o Header `ContentType` e o nome puro.
-        // Em um sistema seguro (QA Edge Case), devemos barrar extensões não correspondentes.
-        // Simulando que vamos esperar 400. Ajuste o Controller se necessário para passar o teste.
+        // O código atual do Controller apenas olha o Header `ContentType` e o nome
+        // puro.
+        // Em um sistema seguro (QA Edge Case), devemos barrar extensões não
+        // correspondentes.
+        // Simulando que vamos esperar 400. Ajuste o Controller se necessário para
+        // passar o teste.
+        assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("BAD_REQUEST", response.getBody().getStatus());
+        verifyNoInteractions(uploadUseCase);
+    }
+
+    @Test
+    void shouldReturn400WhenPdfSignatureIsInvalid() {
+        MockMultipartFile file = new MockMultipartFile("file", "evil.pdf", "application/pdf", "not-a-pdf".getBytes());
+
+        ResponseEntity<UploadResponseDTO> response = uploadController.uploadDiagram(file);
+
         assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("BAD_REQUEST", response.getBody().getStatus());
@@ -115,7 +133,7 @@ class UploadControllerTest {
 
     @Test
     void shouldReturn202WhenUploadSucceeds() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", "abc".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", VALID_PNG_BYTES);
 
         Diagram diagram = Diagram.builder().id("diag-202").build();
         when(uploadUseCase.uploadDiagram(eq("diagram.png"), any(), eq((long) file.getSize()), eq("image/png"), any()))
@@ -126,13 +144,13 @@ class UploadControllerTest {
         assertEquals(HttpStatusCode.valueOf(202), response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("diag-202", response.getBody().getDiagramId());
-        assertEquals("RECEIVED", response.getBody().getStatus());
+        assertEquals("Recebido", response.getBody().getStatus());
         assertTrue(response.getHeaders().containsKey(CORRELATION_ID_HEADER));
     }
 
     @Test
     void shouldReturn500WhenUseCaseReturnsNullId() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", "abc".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", VALID_PNG_BYTES);
 
         when(uploadUseCase.uploadDiagram(eq("diagram.png"), any(), eq((long) file.getSize()), eq("image/png"), any()))
                 .thenReturn(Diagram.builder().id(null).build());
@@ -147,7 +165,7 @@ class UploadControllerTest {
 
     @Test
     void shouldReturn500WhenUseCaseThrowsException() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", "abc".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "diagram.png", "image/png", VALID_PNG_BYTES);
 
         when(uploadUseCase.uploadDiagram(eq("diagram.png"), any(), eq((long) file.getSize()), eq("image/png"), any()))
                 .thenThrow(new RuntimeException("unexpected"));

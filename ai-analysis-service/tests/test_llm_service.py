@@ -27,13 +27,12 @@ def test_analyze_architecture_success(mocker):
 
     mock_client_cls.assert_called_once_with(api_key=settings.GEMINI_API_KEY)
     user_content = mock_client.models.generate_content.call_args.kwargs["contents"]
-    assert "INICIO_TEXTO_EXTRAIDO" in user_content
-    assert "FIM_TEXTO_EXTRAIDO" in user_content
+    assert "Analise o texto extraído abaixo" in user_content
     
 def test_analyze_architecture_raises_non_retryable_on_failure(mocker):
     mock_client_cls = mocker.patch("app.services.llm_service.genai.Client")
     mock_client = mock_client_cls.return_value
-    mock_client.models.generate_content.side_effect = Exception("unexpected failure")
+    mock_client.models.generate_content.side_effect = Exception("invalid api key")
 
     with pytest.raises(NonRetryableAnalysisError) as exc:
         analyze_architecture("MOCK_EXTRACTED_DATA")
@@ -63,7 +62,7 @@ def test_analyze_architecture_sanitizes_and_truncates_payload(mocker):
     assert ">" not in user_content
     assert "\x00" not in user_content
 
-    extracted_payload = user_content.split("INICIO_TEXTO_EXTRAIDO\n", 1)[1].split("\nFIM_TEXTO_EXTRAIDO", 1)[0]
+    extracted_payload = user_content.split("Analise o texto extraído abaixo:\n", 1)[1].strip()
     assert len(extracted_payload) <= 20
 
 
@@ -94,3 +93,14 @@ def test_analyze_architecture_handles_token_limit_exceeded(mocker):
         analyze_architecture("HUGE_MOCK_DATA")
 
     assert "service unavailable" in str(exc.value)
+
+
+def test_analyze_architecture_quota_error_is_non_retryable(mocker):
+    mock_client_cls = mocker.patch("app.services.llm_service.genai.Client")
+    mock_client = mock_client_cls.return_value
+    mock_client.models.generate_content.side_effect = Exception("exceeded your current quota")
+
+    with pytest.raises(NonRetryableAnalysisError) as exc:
+        analyze_architecture("MOCK_EXTRACTED_DATA")
+
+    assert "Falha não-retryable" in str(exc.value)

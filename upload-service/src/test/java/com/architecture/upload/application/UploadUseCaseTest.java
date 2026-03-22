@@ -48,8 +48,8 @@ class UploadUseCaseTest {
         assertNotNull(result);
         assertNotNull(result.getId());
 
-        // 1. Validate Initial State is RECEIVED
-        assertEquals("RECEIVED", result.getStatus(), "O diagrama deve obrigatoriamente iniciar com status RECEIVED");
+        // 1. Validate Initial State is Recebido
+        assertEquals("Recebido", result.getStatus(), "O diagrama deve obrigatoriamente iniciar com status Recebido");
         assertEquals(fileName, result.getOriginalFileName());
 
         // 2. Validate Extension extraction
@@ -59,7 +59,7 @@ class UploadUseCaseTest {
         verify(storageService).uploadFile(eq(result.getS3Key()), eq(mockStream), eq(fileSize), eq(contentType));
 
         verify(diagramRepository)
-                .save(argThat(d -> d.getId().equals(result.getId()) && "RECEIVED".equals(d.getStatus())));
+                .save(argThat(d -> d.getId().equals(result.getId()) && "Recebido".equals(d.getStatus())));
 
         // 4. Validate Event formulation
         verify(outboxService).enqueueFileUploadedEvent(result.getId(), result.getS3Key(), "corr-123");

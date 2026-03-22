@@ -25,9 +25,14 @@ Toda a arquitetura é "cloud-native" e foi projetada para rodar integralmente de
 * `report-service/` : Gera o JSON de diagnóstico final em um banco próprio (Spring Boot).
 * `status-service/` : Tarefa cron que escuta as filas para rastrear e persistir o status global de todo o pipeline (Spring Boot).
 * `terraform/` : IaC declarativo em HCL para produção (AWS RDS, ECR, SQS, SNS, S3).
+* `docs/adr/` : Registro de decisões arquiteturais (ADRs).
 * `docs/` : Detalhamento avançado do fluxo, arquitetura textual e arquivos complementares.
 * `init-aws.sh` : Script de configuração automática de mensageria (queues/topics/bucket) na inicialização do LocalStack.
 * `init-dbs.sql` : Script de configuração automática dos três databases lógicos no Postgres via docker.
+
+Decisão arquitetural relevante sobre “banco por serviço”:
+
+- `docs/adr/ADR-001-servicos-stateless-e-banco-proprio.md`
 
 ---
 
@@ -130,15 +135,25 @@ Como o processamento pode demorar, o client realiza _Long-Polling_ localizando o
 curl -X GET http://localhost:8080/api/v1/status/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="
 ```
-O Estado retornado transitará na ordem esperada: `RECEIVED` → `PROCESSING` → `ANALYZED` (ou `ERROR` em caso de falha).
+O Estado retornado transitará na ordem esperada: `Recebido` → `Em processamento` → `Analisado` (ou `Erro` em caso de falha).
 
 **3. Buscar o Diagnóstico de IA Final:**
 
-Quando o fluxo apontar como status definitivo o enum de estado `ANALYZED`, sua resposta final com riscos infraestruturais detalhados pela IA poderá ser buscada aqui:
+Quando o fluxo apontar como status definitivo `Analisado`, sua resposta final com riscos infraestruturais detalhados pela IA poderá ser buscada aqui:
 ```bash
 curl -X GET http://localhost:8080/api/v1/reports/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="
 ```
+
+## 🧠 Limitações do Modelo de IA
+
+Para previsibilidade e uso controlado da IA no fluxo:
+
+- A análise depende da qualidade do OCR; diagramas com baixa resolução, sobreposição de elementos ou texto ilegível podem reduzir a acurácia.
+- O modelo pode não reconhecer componentes muito específicos de domínio sem contexto adicional.
+- A classificação de riscos é heurística e pode gerar falso-positivo/falso-negativo em arquiteturas não convencionais.
+- A saída é validada como JSON estruturado (`components`, `risks`, `recommendations`), mas não substitui revisão técnica humana.
+- Em falha do provedor LLM, o sistema não gera “sucesso simulado”; falhas são tratadas explicitamente no pipeline assíncrono.
 
 ## ☁️ Implantação em Produção (AWS)
 O projeto contém a pasta `/terraform`.

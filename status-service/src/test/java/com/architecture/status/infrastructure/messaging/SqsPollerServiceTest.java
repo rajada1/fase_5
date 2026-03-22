@@ -42,7 +42,7 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
                 verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString());
@@ -63,9 +63,9 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
-                verify(updateStatusUseCase).updateStatus("diag-123", "PROCESSING");
+                verify(updateStatusUseCase).updateStatus("diag-123", "Em processamento");
                 verify(sqsClient)
                                 .deleteMessage(org.mockito.ArgumentMatchers
                                                 .argThat(matchesDeleteRequest("queue-url", "receipt-234")));
@@ -83,7 +83,7 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
                 verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString());
@@ -104,7 +104,7 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
                 verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString());
@@ -125,7 +125,7 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
                 verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
                                 org.mockito.ArgumentMatchers.anyString());
@@ -139,7 +139,7 @@ class SqsPollerServiceTest {
                 SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
                 doThrow(new RuntimeException("db unavailable"))
                                 .when(updateStatusUseCase)
-                                .updateStatus("diag-500", "PROCESSING");
+                                .updateStatus("diag-500", "Em processamento");
 
                 Message message = Message.builder()
                                 .body("{\"diagramId\":\"diag-500\"}")
@@ -149,9 +149,9 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "PROCESSING");
+                method.invoke(service, message, "queue-url", "Em processamento");
 
-                verify(updateStatusUseCase).updateStatus("diag-500", "PROCESSING");
+                verify(updateStatusUseCase).updateStatus("diag-500", "Em processamento");
                 verify(sqsClient, never()).deleteMessage(org.mockito.ArgumentMatchers.any(DeleteMessageRequest.class));
         }
 
@@ -167,9 +167,9 @@ class SqsPollerServiceTest {
                 Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
                                 String.class);
                 method.setAccessible(true);
-                method.invoke(service, message, "queue-url", "ANALYZED");
+                method.invoke(service, message, "queue-url", "Analisado");
 
-                verify(updateStatusUseCase).updateStatus("diag-err", "ERROR");
+                verify(updateStatusUseCase).updateStatus("diag-err", "Erro");
                 verify(sqsClient)
                                 .deleteMessage(org.mockito.ArgumentMatchers
                                                 .argThat(matchesDeleteRequest("queue-url", "receipt-999")));

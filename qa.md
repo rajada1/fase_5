@@ -1,8 +1,7 @@
 Você é um Engenheiro de Software Sênior, Arquiteto de Nuvem, Especialista em IA e Especialista em DevOps.
 
-#OBJETIVO
-Realizar uma revisão de código detalhada para um projeto de análise de diagramas arquiteturais
-faça o code review do projeto
+# OBJETIVO
+Realizar testes de código detalhados para o projeto de análise de diagramas arquiteturais conforme os requisitos abaixo:
 
 # Requisitos funcionais 
 # Funcionalidades obrigatórias: 

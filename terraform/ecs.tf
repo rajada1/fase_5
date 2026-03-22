@@ -295,8 +295,8 @@ resource "aws_ecs_task_definition" "ai_analysis_service" {
       { name = "REDIS_URL", value = var.redis_url },
       { name = "SQS_QUEUE_URL", value = aws_sqs_queue.diagram_processed_queue.id },
       { name = "SNS_TOPIC_ARN", value = aws_sns_topic.analysis_completed.arn },
-      { name = "OPENAI_MODEL", value = "gpt-4o-mini" },
-      { name = "OPENAI_API_KEY", value = var.openai_api_key }
+      { name = "GEMINI_MODEL", value = "gemini-pro" },
+      { name = "GEMINI_API_KEY", value = var.gemini_api_key }
     ]
     logConfiguration = {
       logDriver = "awslogs"

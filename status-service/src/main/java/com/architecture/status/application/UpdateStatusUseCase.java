@@ -15,7 +15,7 @@ public class UpdateStatusUseCase {
     private final StatusRepository statusRepository;
 
     @Transactional
-    public void updateStatus(String diagramId, String state) {
+    public void updateStatus(String diagramId, String state) { // Recebido, Em processamento, Analisado, Erro
         if (!isKnownState(state)) {
             throw new IllegalArgumentException("Estado de status inválido: " + state);
         }
@@ -55,13 +55,13 @@ public class UpdateStatusUseCase {
         if (state == null)
             return -1;
         switch (state.toUpperCase()) {
-            case "RECEIVED":
+            case "RECEBIDO":
                 return 0;
-            case "PROCESSING":
+            case "EM PROCESSAMENTO":
                 return 1;
-            case "ANALYZED":
+            case "ANALISADO":
                 return 2;
-            case "ERROR":
+            case "ERRO":
                 return 3;
             default:
                 throw new IllegalArgumentException("Estado de status inválido: " + state);
@@ -72,10 +72,10 @@ public class UpdateStatusUseCase {
         if (state == null)
             return false;
         switch (state.toUpperCase()) {
-            case "RECEIVED":
-            case "PROCESSING":
-            case "ANALYZED":
-            case "ERROR":
+            case "RECEBIDO":
+            case "EM PROCESSAMENTO":
+            case "ANALISADO":
+            case "ERRO":
                 return true;
             default:
                 return false;

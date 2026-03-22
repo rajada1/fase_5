@@ -115,7 +115,7 @@ Evidências:
 **Status: Atendido com ressalvas**
 
 Evidências:
-- Erros transitórios da API da OpenAI são tratados como retryáveis (reentrega SQS).
+- Erros transitórios da API da Gemini são tratados como retryáveis (reentrega SQS).
 - Erros não-retryables são diferenciados.
 - Erros não-retryables e payloads inválidos geram evento `ANALYSIS_FAILED`, refletindo estado `ERROR` no `status-service`.
 

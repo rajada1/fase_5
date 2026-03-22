@@ -3,6 +3,7 @@ import boto3
 import json
 import logging
 import os
+import tempfile
 from app.core.config import settings
 from app.services.dedupe_service import should_skip_duplicate
 from app.services.metrics import (
@@ -149,7 +150,7 @@ async def start_polling():
                     queue_url=queue_url,
                     correlation_id=correlation_id,
                 )
-                local_path = f"/tmp/{diagram_id}"
+                local_path = os.path.join(tempfile.gettempdir(), f"{diagram_id}.bin")
 
                 try:
                     await asyncio.to_thread(download_file, s3_key, local_path)

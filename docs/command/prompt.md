@@ -42,7 +42,7 @@ Build a cloud-native system that:
 
 4. AI Analysis Service (Python + FastAPI)
 * Triggered by SQS message
-* Analyzes extracted data using LLM (Simulated or OpenAI integration)
+* Analyzes extracted data using LLM (Simulated or Gemini integration)
 * Identifies architecture components, single points of failure, missing API gateways, and shared databases
 * Generates structured JSON analysis
 * Publishes `AnalysisCompletedEvent`

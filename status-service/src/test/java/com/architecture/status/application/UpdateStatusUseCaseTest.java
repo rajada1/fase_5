@@ -49,6 +49,15 @@ class UpdateStatusUseCaseTest {
     }
 
     @Test
+    void shouldThrowExceptionWhenStateIsInvalid() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> updateStatusUseCase.updateStatus(DIAGRAM_ID, "LIXO_INJETADO"));
+
+        assertTrue(exception.getMessage().contains("Estado de status inválido"));
+        verify(statusRepository, never()).save(any());
+    }
+
+    @Test
     void shouldCreateNewStateIfNotFound() {
         when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.empty());
 

@@ -26,6 +26,8 @@ public class UploadController {
         private static final List<String> ALLOWED_CONTENT_TYPES = Arrays.asList(
                         "image/jpeg", "image/png", "application/pdf");
 
+        private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+
         private static final String CORRELATION_ID_HEADER = "X-Correlation-Id";
 
         public ResponseEntity<UploadResponseDTO> uploadDiagram(MultipartFile file) {
@@ -61,6 +63,18 @@ public class UploadController {
                                                         "O arquivo não pode ser vazio."));
                 }
 
+                // 2. Verificar o tamanho máximo do arquivo
+                if (file.getSize() > MAX_FILE_SIZE) {
+                        log.warn(
+                                        "Tentativa de upload excedeu o limite. correlationId={} fileSize={} maxLimit={}",
+                                        correlationId,
+                                        file.getSize(),
+                                        MAX_FILE_SIZE);
+                        return ResponseEntity.badRequest().header(CORRELATION_ID_HEADER, correlationId)
+                                        .body(new UploadResponseDTO(null, "BAD_REQUEST",
+                                                        "O tamanho do arquivo excede o limite máximo permitido de 10MB."));
+                }
+
                 // 2 & 3. Sanitização do nome do arquivo e prevenção de Path Traversal
                 if (originalFilename == null || originalFilename.trim().isEmpty()) {
                         log.warn("Tentativa de upload inválida. correlationId={} reason=missing_filename contentType={} fileSize={}",
@@ -85,7 +99,7 @@ public class UploadController {
                                                         "Nome de arquivo contém um caminho inválido."));
                 }
 
-                // 4. Validar o Content-Type (Segurança)
+                // 4. Validar o Content-Type e Extensão (Segurança contra Spoofing)
                 if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType)) {
                         log.warn(
                                         "Tentativa de upload inválida. correlationId={} reason=unsupported_content_type fileName={} contentType={} fileSize={}",
@@ -96,6 +110,22 @@ public class UploadController {
                         return ResponseEntity.badRequest().header(CORRELATION_ID_HEADER, correlationId)
                                         .body(new UploadResponseDTO(null, "BAD_REQUEST",
                                                         "Tipo de arquivo não suportado. Apenas imagens e PDF são permitidos."));
+                }
+                
+                String lowerCaseFileName = cleanFileName.toLowerCase();
+                boolean isExtensionValid = (contentType.equals("application/pdf") && lowerCaseFileName.endsWith(".pdf")) ||
+                                           (contentType.equals("image/png") && lowerCaseFileName.endsWith(".png")) ||
+                                           (contentType.equals("image/jpeg") && (lowerCaseFileName.endsWith(".jpg") || lowerCaseFileName.endsWith(".jpeg")));
+                
+                if (!isExtensionValid) {
+                        log.warn(
+                                        "Tentativa de upload com extensão incompatível (Spoofing). correlationId={} fileName={} contentType={}",
+                                        correlationId,
+                                        cleanFileName,
+                                        contentType);
+                        return ResponseEntity.badRequest().header(CORRELATION_ID_HEADER, correlationId)
+                                        .body(new UploadResponseDTO(null, "BAD_REQUEST",
+                                                        "A extensão do arquivo não corresponde ao tipo de conteúdo enviado (Spoofing detectado)."));
                 }
 
                 try {

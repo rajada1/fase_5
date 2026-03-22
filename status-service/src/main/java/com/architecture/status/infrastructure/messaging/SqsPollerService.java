@@ -36,17 +36,17 @@ public class SqsPollerService {
 
     @Scheduled(fixedDelay = 2000)
     public void pollUploadedQueue() {
-        pollQueue(uploadedQueueUrl, "PROCESSING");
+        pollQueue(uploadedQueueUrl, "Em processamento");
     }
 
     @Scheduled(fixedDelay = 2000)
     public void pollProcessedQueue() {
-        pollQueue(processedQueueUrl, "PROCESSING");
+        pollQueue(processedQueueUrl, "Em processamento");
     }
 
     @Scheduled(fixedDelay = 2000)
     public void pollAnalysisQueue() {
-        pollQueue(analysisQueueUrl, "ANALYZED");
+        pollQueue(analysisQueueUrl, "Analisado");
     }
 
     private void pollQueue(String queueUrl, String newState) {
@@ -125,7 +125,7 @@ public class SqsPollerService {
     private String resolveTargetState(JsonNode bodyNode, String defaultState) {
         String eventType = bodyNode.hasNonNull("eventType") ? bodyNode.get("eventType").asText("") : "";
         if (eventType != null && eventType.toUpperCase().endsWith("_FAILED")) {
-            return "ERROR";
+            return "Erro";
         }
         return defaultState;
     }

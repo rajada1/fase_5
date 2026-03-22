@@ -89,7 +89,7 @@ No repositório (`Settings -> Secrets and variables -> Actions -> New repository
 - `AWS_SECRET_ACCESS_KEY` (opcional, fallback)
 - `DB_USERNAME`
 - `DB_PASSWORD`
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `REDIS_URL`
 - `COGNITO_USER_POOL_ID`
 

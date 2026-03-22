@@ -60,7 +60,7 @@ No repositório GitHub (Settings > Secrets and variables > Actions), criar:
 - AWS_ROLE_ARN
 - DB_USERNAME
 - DB_PASSWORD
-- OPENAI_API_KEY
+- GEMINI_API_KEY
 - COGNITO_USER_POOL_ID
 
 Valor esperado de AWS_ROLE_ARN:
@@ -91,5 +91,5 @@ Todos os jobs verdes no GitHub Actions e serviços ativos no ECS com OIDC como p
 ## Se falhar
 
 - Falha em assumir role: revisar trust policy (sub do repositório/branch).
-- Falha no terraform apply: revisar secrets DB_USERNAME, DB_PASSWORD, OPENAI_API_KEY, COGNITO_USER_POOL_ID.
+- Falha no terraform apply: revisar secrets DB_USERNAME, DB_PASSWORD, GEMINI_API_KEY, COGNITO_USER_POOL_ID.
 - Falha no push ECR: revisar permissões ECR e iam:PassRole na policy inline.

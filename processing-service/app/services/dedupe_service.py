@@ -93,7 +93,7 @@ def should_skip_duplicate(diagram_id: str, dedupe_window_seconds: int) -> bool:
     redis_client = _get_redis_client()
     if redis_client is not None:
         try:
-            key = f"dedupe:diagram:{diagram_id}"
+            key = f"dedupe:{settings.DEDUPE_KEY_PREFIX}:diagram:{diagram_id}"
             created = redis_client.set(key, "1", ex=dedupe_window_seconds, nx=True)
             skipped = not bool(created)
             _record_result(skipped, "redis")

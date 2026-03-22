@@ -177,3 +177,116 @@ Arquitetura de microsserviços, mensageria assíncrona e isolamento de dados bem
 ## Conclusão
 
 O projeto avançou de um MVP funcional para uma base tecnicamente sólida, com ganhos concretos em consistência, idempotência e observabilidade. Ainda há riscos importantes, mas agora são localizados e tratáveis em um plano incremental de hardening.
+
+---
+
+## Execução Local Complementar (2026-03-22)
+
+Validação executada nesta data para confirmar o estado atual do repositório em ambiente local Windows.
+
+### Testes automatizados executados
+
+- `processing-service` (pytest): **15 passed**
+- `ai-analysis-service` (pytest): **15 passed**
+- `api-gateway` (maven/surefire): **3 passed, 0 failed**
+- `upload-service` (maven/surefire): **10 passed, 0 failed**
+- `report-service` (maven/surefire): **12 passed, 0 failed**
+- `status-service` (maven/surefire): **16 passed, 0 failed**
+
+Total consolidado desta execução: **71 testes passados, 0 falhas**.
+
+### Verificação de integração local (infra)
+
+- `docker compose config -q` executado com sucesso de parse.
+- Observação: há warning de depreciação do campo `version` no `docker-compose.yml` (não bloqueante no momento).
+
+### Bugs/performance identificados nesta execução
+
+- Não foram encontradas falhas reproduzíveis nos testes automatizados locais executados.
+- Não houve necessidade de alteração de código nesta rodada de validação.
+
+### Pendências para validação E2E completa de integrações externas
+
+Para validar ponta a ponta com serviços externos reais (Gemini/AWS/Redis), ainda é necessário executar a esteira com stack ativa (`docker-compose up`) e variáveis/credenciais válidas no ambiente (`GEMINI_API_KEY`, endpoint AWS/LocalStack e `REDIS_URL`), além de chamar os endpoints de upload/status/report em sequência.
+
+---
+
+## Simulação de usuário via API (estilo Insomnia) — 2026-03-22
+
+Rodada de validação manual via HTTP (equivalente a coleção Insomnia/Postman) executada contra o ambiente local.
+
+### Evidências coletadas
+
+- `GET http://localhost:8080/actuator/health` → **200**
+- `POST http://localhost:8080/api/v1/upload` (Basic Auth) → **403**
+- `GET http://localhost:8080/api/v1/status/test-diagram` (Basic Auth) → **403**
+- `GET http://localhost:8080/api/v1/reports/test-diagram` (Basic Auth) → **503**
+- `GET http://localhost:8082/health` (processing-service direto) → **200**
+- `GET http://localhost:8083/health` (ai-analysis-service direto) → **indisponível**
+
+### Conclusão da simulação
+
+- O fluxo completo de usuário (upload → status → relatório) **não pôde ser validado como OK** nesta execução.
+- Bloqueios observados:
+	1. **Autorização no gateway** retornando `403` para endpoints funcionais com credencial Basic usada no README.
+	2. **Indisponibilidade de serviços downstream** (ex.: `report-service`/`ai-analysis-service`), refletindo `503` no gateway.
+
+### Ações recomendadas para destravar o E2E
+
+1. Padronizar autenticação local do gateway (permitir fluxo de teste local ou fornecer JWT válido para QA).
+2. Corrigir startup dos serviços Java dependentes de banco para estabilizar `8081/8084/8085`.
+3. Garantir `ai-analysis-service` ativo em `8083` durante a rodada de teste manual.
+4. Reexecutar a coleção HTTP após estabilização e registrar o `diagramId` até o estado `ANALYZED`.
+
+---
+
+## Continuação da simulação E2E (2026-03-22, rodada de correções)
+
+Após a rodada inicial bloqueada, foi feita depuração adicional ponta a ponta com execução real do fluxo HTTP e análise de filas/consumidores.
+
+### Correções aplicadas nesta rodada
+
+1. **S3 LocalStack no Upload Service**
+	- `upload-service` ajustado para path-style addressing no S3, evitando erro de hostname virtual (`*.localhost`) em ambiente local.
+
+2. **Rate limiter no API Gateway**
+	- Adicionado `KeyResolver` para evitar `403` por chave vazia em requisições sem principal autenticado no cenário local de QA.
+
+3. **Conflito de consumo de filas no Status Service**
+	- `status-service` deixou de consumir as mesmas filas dos workers (`processing/report`).
+	- Criadas filas dedicadas de status (`status-*-queue-dev`) e atualizada assinatura SNS para fanout correto.
+
+4. **Configuração Python (.env) sem colisão de variáveis**
+	- Introduzidas variáveis prefixadas por serviço (`PROCESSING_*`, `AI_ANALYSIS_*`) com fallback retrocompatível.
+	- Eliminado cenário onde `processing-service` lia URL de fila do `ai-analysis-service` por sobrescrita em `.env` compartilhado.
+
+5. **Compatibilidade Windows no processamento**
+	- `processing-service` passou a usar diretório temporário do SO (`tempfile.gettempdir`) em vez de caminho fixo `/tmp`.
+
+6. **Fallback OCR local defensivo**
+	- Em ambiente local sem Textract disponível (licença LocalStack) e sem binários OCR instalados, o worker não trava a esteira: gera texto placeholder controlado.
+
+7. **Dedupe isolada por estágio**
+	- Chaves Redis de dedupe separadas por serviço (`processing` vs `ai-analysis`), evitando que evento processado no primeiro estágio seja descartado no segundo.
+
+8. **Tratamento de quota Gemini no AI Analysis Service**
+	- Erro `429 insufficient_quota` passou a ser classificado como **não-retryable**, com publicação de evento de falha (`ANALYSIS_FAILED`) para encerrar o fluxo com `ERROR` em vez de ficar indefinidamente em `PROCESSING`.
+
+### Evidência funcional da rodada
+
+- Upload via gateway: **202** (OK)
+- Pipeline assíncrono: processamento e análise são consumidos (métricas confirmam recebimento/processamento)
+- Status final para execução real validada (`diagramId=d9946f41-0939-45fe-886c-d507d534fecc`):
+  - transição observada: `PROCESSING` → `ERROR` (em ~10s)
+- Relatório final (`GET /reports/{diagramId}`): **404** quando análise termina em erro (comportamento consistente)
+
+### Causa remanescente para não atingir `ANALYZED`
+
+- Conta/chave Gemini com **quota insuficiente** durante chamada ao endpoint do modelo.
+- Com as correções, este erro não deixa mais o fluxo preso: ele finaliza corretamente como `ERROR`.
+
+### Estado atual de QA
+
+- **Não há mais travamento indefinido em `PROCESSING`**.
+- Fluxo local está operacional até estado terminal.
+- Para obter trajetória de sucesso completa (`ANALYZED` + relatório 200), é necessário disponibilizar chave Gemini com quota ativa.

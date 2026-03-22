@@ -22,8 +22,8 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "openai_api_key" {
-  description = "OpenAI API key"
+variable "gemini_api_key" {
+  description = "Gemini API key"
   type        = string
   sensitive   = true
 }

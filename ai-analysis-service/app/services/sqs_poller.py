@@ -3,7 +3,7 @@ import boto3
 import json
 import logging
 from app.core.config import settings
-from app.services.dedupe_service import should_skip_duplicate
+from app.services.dedupe_service import release_duplicate_lock, should_skip_duplicate
 from app.services.llm_service import NonRetryableAnalysisError, analyze_architecture
 from app.services.metrics import (
     messages_deduped_total,
@@ -178,6 +178,7 @@ async def start_polling():
                     )
                 except Exception as transient_error:
                     messages_failed_total.inc()
+                    release_duplicate_lock(diagram_id)
                     _log_with_context(
                         "error",
                         f"Erro transitório na análise (retry via SQS): {transient_error}",

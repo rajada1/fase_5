@@ -1,0 +1,229 @@
+{
+	"_type": "export",
+	"__export_format": 4,
+	"__export_date": "2026-03-22T13:12:00.000Z",
+	"__export_source": "insomnia.desktop.app:v9.0.0",
+	"resources": [
+		{
+			"_id": "wrk_1",
+			"parentId": null,
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"name": "FIAP - Fase 5 QA API",
+			"description": "Coleção para testes manuais e de QA do projeto de análise de diagramas.",
+			"scope": "collection",
+			"_type": "workspace"
+		},
+		{
+			"_id": "env_1",
+			"parentId": "wrk_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"name": "Local Environment",
+			"data": {
+				"base_url": "http://localhost:8080/api/v1",
+				"bearer_token": "YOUR_JWT_HERE"
+			},
+			"dataPropertyOrder": {
+				"&": ["base_url", "bearer_token"]
+			},
+			"color": null,
+			"isPrivate": false,
+			"metaSortKey": 1711110000000,
+			"_type": "environment"
+		},
+		{
+			"_id": "fld_1",
+			"parentId": "wrk_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"name": "1. Fluxo Principal",
+			"description": "",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -100,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_upload_ok",
+			"parentId": "fld_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/upload",
+			"name": "Upload Diagrama (OK)",
+			"description": "Sobe uma imagem PNG válida.",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "file",
+						"value": "",
+						"id": "pair_1",
+						"type": "file",
+						"fileName": "diagrama_valido.png"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "multipart/form-data"
+				},
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1000,
+			"isPrivate": false,
+			"_type": "request"
+		},
+		{
+			"_id": "req_status_ok",
+			"parentId": "fld_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/status/{{ diagramId }}",
+			"name": "Consultar Status",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -900,
+			"isPrivate": false,
+			"_type": "request"
+		},
+		{
+			"_id": "req_report_ok",
+			"parentId": "fld_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/reports/{{ diagramId }}",
+			"name": "Gerar Relatório",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -800,
+			"isPrivate": false,
+			"_type": "request"
+		},
+		{
+			"_id": "fld_2",
+			"parentId": "wrk_1",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"name": "2. Edge Cases (QA)",
+			"description": "Testes para quebrar o sistema.",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -50,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_upload_spoofing",
+			"parentId": "fld_2",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/upload",
+			"name": "Upload Spoofing (Script renomeado)",
+			"description": "Tenta subir um arquivo .sh renomeado para .png.",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "file",
+						"value": "",
+						"id": "pair_spoof",
+						"type": "file",
+						"fileName": "hack.png"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1000,
+			"isPrivate": false,
+			"_type": "request"
+		},
+		{
+			"_id": "req_upload_large",
+			"parentId": "fld_2",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/upload",
+			"name": "Upload Arquivo > 10MB",
+			"description": "Deve retornar 400 Bad Request.",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "file",
+						"value": "",
+						"id": "pair_large",
+						"type": "file",
+						"fileName": "giant_diagram.pdf"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -950,
+			"isPrivate": false,
+			"_type": "request"
+		},
+		{
+			"_id": "req_status_404",
+			"parentId": "fld_2",
+			"modified": 1711110000000,
+			"created": 1711110000000,
+			"url": "{{ _.base_url }}/status/id-inexistente",
+			"name": "Status 404",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Authorization",
+					"value": "Bearer {{ _.bearer_token }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -900,
+			"isPrivate": false,
+			"_type": "request"
+		}
+	]
+}

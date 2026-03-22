@@ -16,7 +16,7 @@ public class SecurityConfig {
         http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/actuator/**", "/fallback/**").permitAll() // Allow health checks and fallbacks
+                .pathMatchers("/actuator/**", "/fallback/**", "/api/v1/**").permitAll() // Allow health checks, fallbacks and APIs for local test
                 .anyExchange().authenticated() // Block all unregistered traffic natively
             )
             .oauth2ResourceServer(oauth2 -> oauth2

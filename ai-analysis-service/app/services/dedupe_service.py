@@ -93,7 +93,7 @@ def should_skip_duplicate(diagram_id: str, dedupe_window_seconds: int) -> bool:
     redis_client = _get_redis_client()
     if redis_client is not None:
         try:
-            key = f"dedupe:diagram:{diagram_id}"
+            key = f"dedupe:{settings.DEDUPE_KEY_PREFIX}:diagram:{diagram_id}"
             created = redis_client.set(key, "1", ex=dedupe_window_seconds, nx=True)
             skipped = not bool(created)
             _record_result(skipped, "redis")
@@ -105,3 +105,16 @@ def should_skip_duplicate(diagram_id: str, dedupe_window_seconds: int) -> bool:
     skipped = _should_skip_duplicate_memory(diagram_id, dedupe_window_seconds)
     _record_result(skipped, "memory")
     return skipped
+
+
+def release_duplicate_lock(diagram_id: str):
+    redis_client = _get_redis_client()
+    if redis_client is not None:
+        try:
+            key = f"dedupe:{settings.DEDUPE_KEY_PREFIX}:diagram:{diagram_id}"
+            redis_client.delete(key)
+            return
+        except Exception as exc:
+            logger.warning(f"Falha ao liberar lock de dedupe no Redis: {exc}")
+
+    _recent_diagrams.pop(diagram_id, None)

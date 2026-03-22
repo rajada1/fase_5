@@ -8,7 +8,7 @@ Toda a arquitetura é "cloud-native" e foi projetada para rodar integralmente de
 
 - **Microsserviços:** 6 serviços independentes, arquitetados sob os preceitos rigorosos da *Clean Architecture (Hexagonal)*.
 - **Ecossistema Java:** Spring Boot 3, Spring Cloud Gateway, Spring Data JPA, AWS SDK v2, Maven.
-- **Ecossistema Python:** FastAPI, Pydantic, Boto3, OpenAI API.
+- **Ecossistema Python:** FastAPI, Pydantic, Boto3, Gemini API.
 - **Banco de Dados:** PostgreSQL (Padrão: 1 Database por Microsserviço).
 - **Processamento Assíncrono:** Mensageria via Amazon SQS e Amazon SNS.
 - **Armazenamento:** Amazon S3.
@@ -181,7 +181,7 @@ No workflow de serviços, os caminhos monitorados são:
 - `AWS_SECRET_ACCESS_KEY` (opcional, fallback)
 - `DB_USERNAME`
 - `DB_PASSWORD`
-- `OPENAI_API_KEY`
+- `GEMINI_API_KEY`
 - `REDIS_URL`
 - `COGNITO_USER_POOL_ID`
 

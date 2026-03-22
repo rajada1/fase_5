@@ -16,9 +16,9 @@ spring:
 aws:
   region: us-east-1
   sqs:
-    file-uploaded-queue-url: http://localhost:4566/000000000000/file-uploaded-queue-dev
-    diagram-processed-queue-url: http://localhost:4566/000000000000/diagram-processed-queue-dev
-    analysis-completed-queue-url: http://localhost:4566/000000000000/analysis-completed-queue-dev
+    file-uploaded-queue-url: http://localhost:4566/000000000000/status-file-uploaded-queue-dev
+    diagram-processed-queue-url: http://localhost:4566/000000000000/status-diagram-processed-queue-dev
+    analysis-completed-queue-url: http://localhost:4566/000000000000/status-analysis-completed-queue-dev
   # Localstack configuration for local development
   endpoint: http://localhost:4566
 

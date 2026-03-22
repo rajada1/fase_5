@@ -1,4 +1,4 @@
-# Checklist de Configuração AWS + GitHub + OpenAI (Produção)
+# Checklist de Configuração AWS + GitHub + Gemini (Produção)
 
 ## 1) AWS (infra e segurança)
 
@@ -13,15 +13,15 @@
 - [ ] Criar Role IAM para OIDC com trust policy para `token.actions.githubusercontent.com`.
 - [ ] Conceder permissões da Role para ECR push (e deploy, se necessário).
 - [ ] Criar secret `AWS_ROLE_ARN` no repositório.
-- [ ] Criar secrets `AWS_REGION`, `DB_USERNAME`, `DB_PASSWORD`, `OPENAI_API_KEY`, `REDIS_URL`, `COGNITO_USER_POOL_ID` no repositório.
+- [ ] Criar secrets `AWS_REGION`, `DB_USERNAME`, `DB_PASSWORD`, `GEMINI_API_KEY`, `REDIS_URL`, `COGNITO_USER_POOL_ID` no repositório.
 - [ ] Criar Repository Variable: `DEPLOY_ENV`.
 - [ ] Confirmar branch protegida e required checks para `main`.
 - [ ] Seguir o guia detalhado em `docs/github-oidc-setup.md`.
 
-## 3) OpenAI
+## 3) Gemini
 
-- [ ] Definir `OPENAI_API_KEY` no ambiente do `ai-analysis-service`.
-- [ ] Definir `OPENAI_MODEL` (padrão atual: `gpt-4o-mini`).
+- [ ] Definir `GEMINI_API_KEY` no ambiente do `ai-analysis-service`.
+- [ ] Definir `GEMINI_MODEL` (padrão atual: `gemini-pro`).
 - [ ] Configurar observabilidade para erro/custo de chamadas de LLM.
 
 ## 4) Variáveis por serviço
@@ -40,8 +40,8 @@
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (ou IAM Role)
 - `SQS_QUEUE_URL`
 - `SNS_TOPIC_ARN`
-- `OPENAI_API_KEY`
-- `OPENAI_MODEL`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
 
 ### upload/report/status (Spring)
 - `DB_HOST`

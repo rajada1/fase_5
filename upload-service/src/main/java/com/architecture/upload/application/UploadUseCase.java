@@ -61,7 +61,7 @@ public class UploadUseCase {
                 .id(diagramId)
                 .originalFileName(originalFileName)
                 .s3Key(s3Key)
-                .status("RECEIVED")
+                .status("Recebido")
                 .uploadedAt(LocalDateTime.now())
                 .build();
         diagramRepository.save(diagram);

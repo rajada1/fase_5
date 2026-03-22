@@ -1,0 +1,12 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.3, pytest-8.4.2, pluggy-1.6.0
+rootdir: C:\Users\Meu Computador\OneDrive\┴rea de Trabalho\FIAP\projeto\fase_5\processing-service
+plugins: anyio-4.12.1, mock-3.15.1
+collected 13 items
+
+tests\test_health_endpoint.py ..                                         [ 15%]
+tests\test_ocr_service.py ...                                            [ 38%]
+tests\test_sqs_poller_dedupe.py .....                                    [ 76%]
+tests\test_sqs_poller_flow.py ...                                        [100%]
+
+============================= 13 passed in 1.02s ==============================

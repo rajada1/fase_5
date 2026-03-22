@@ -58,6 +58,21 @@ class UploadControllerTest {
     }
 
     @Test
+    void shouldReturn400WhenFileIsTooLarge() {
+        // 11MB file (exceeds 10MB limit)
+        byte[] largeContent = new byte[11 * 1024 * 1024];
+        MockMultipartFile file = new MockMultipartFile("file", "large.png", "image/png", largeContent);
+
+        ResponseEntity<UploadResponseDTO> response = uploadController.uploadDiagram(file);
+
+        assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("BAD_REQUEST", response.getBody().getStatus());
+        assertTrue(response.getBody().getMessage().contains("excede o limite"));
+        verifyNoInteractions(uploadUseCase);
+    }
+
+    @Test
     void shouldReturn400WhenFilenameContainsPathTraversal() {
         MockMultipartFile file = new MockMultipartFile("file", "../evil.png", "image/png", "abc".getBytes());
 
@@ -75,6 +90,23 @@ class UploadControllerTest {
 
         ResponseEntity<UploadResponseDTO> response = uploadController.uploadDiagram(file);
 
+        assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("BAD_REQUEST", response.getBody().getStatus());
+        verifyNoInteractions(uploadUseCase);
+    }
+
+    @Test
+    void shouldReturn400WhenMimeTypeSpoofingIsAttempted() {
+        // Filename has .sh extension but content type is image/png (spoofing)
+        MockMultipartFile file = new MockMultipartFile("file", "script.sh", "image/png", "echo 'hacked'".getBytes());
+
+        ResponseEntity<UploadResponseDTO> response = uploadController.uploadDiagram(file);
+
+        // Se a validação for robusta, deve falhar no spoofing.
+        // O código atual do Controller apenas olha o Header `ContentType` e o nome puro.
+        // Em um sistema seguro (QA Edge Case), devemos barrar extensões não correspondentes.
+        // Simulando que vamos esperar 400. Ajuste o Controller se necessário para passar o teste.
         assertEquals(HttpStatusCode.valueOf(400), response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("BAD_REQUEST", response.getBody().getStatus());

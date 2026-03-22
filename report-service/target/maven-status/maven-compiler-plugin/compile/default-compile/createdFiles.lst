@@ -2,11 +2,13 @@ com\architecture\report\application\ports\ReportRepository.class
 com\architecture\report\infrastructure\persistence\ReportEntity.class
 com\architecture\report\infrastructure\persistence\ReportEntity$ReportEntityBuilder.class
 com\architecture\report\ReportApplication.class
+com\architecture\report\interfaces\rest\ReportExceptionHandler.class
 com\architecture\report\application\GenerateReportUseCase.class
 com\architecture\report\interfaces\rest\ReportResponseDTO$ReportResponseDTOBuilder.class
 com\architecture\report\infrastructure\persistence\ReportRepositoryAdapter.class
 com\architecture\report\domain\Report$ReportBuilder.class
 com\architecture\report\infrastructure\persistence\SpringDataReportRepository.class
+com\architecture\report\application\ReportNotFoundException.class
 com\architecture\report\infrastructure\messaging\SqsPollerService.class
 com\architecture\report\interfaces\rest\ReportController.class
 com\architecture\report\infrastructure\config\AwsConfig.class

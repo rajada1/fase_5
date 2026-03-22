@@ -1,7 +1,10 @@
+com\architecture\upload\application\ports\OutboxService.class
 com\architecture\upload\domain\Diagram$DiagramBuilder.class
 com\architecture\upload\UploadApplication.class
 com\architecture\upload\interfaces\rest\UploadResponseDTO.class
+com\architecture\upload\infrastructure\outbox\OutboxEventEntity.class
 com\architecture\upload\infrastructure\persistence\DiagramEntity.class
+com\architecture\upload\infrastructure\outbox\SpringDataOutboxEventRepository.class
 com\architecture\upload\application\ports\DiagramRepository.class
 com\architecture\upload\infrastructure\persistence\DiagramRepositoryAdapter.class
 com\architecture\upload\infrastructure\persistence\SpringDataDiagramRepository.class
@@ -9,8 +12,12 @@ com\architecture\upload\infrastructure\config\AwsConfig.class
 com\architecture\upload\application\ports\MessagingService.class
 com\architecture\upload\domain\Diagram.class
 com\architecture\upload\application\UploadUseCase.class
+com\architecture\upload\application\UploadUseCase$1.class
 com\architecture\upload\infrastructure\messaging\SnsMessagingAdapter.class
 com\architecture\upload\infrastructure\storage\S3StorageAdapter.class
 com\architecture\upload\interfaces\rest\UploadController.class
+com\architecture\upload\infrastructure\outbox\OutboxEventPublisher.class
+com\architecture\upload\infrastructure\outbox\OutboxEventEntity$OutboxEventEntityBuilder.class
 com\architecture\upload\application\ports\StorageService.class
 com\architecture\upload\infrastructure\persistence\DiagramEntity$DiagramEntityBuilder.class
+com\architecture\upload\infrastructure\outbox\OutboxServiceAdapter.class

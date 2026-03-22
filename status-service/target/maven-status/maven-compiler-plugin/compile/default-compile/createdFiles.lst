@@ -2,6 +2,8 @@ com\architecture\status\interfaces\rest\StatusResponseDTO.class
 com\architecture\status\infrastructure\persistence\SpringDataStatusRepository.class
 com\architecture\status\infrastructure\config\AwsConfig.class
 com\architecture\status\interfaces\rest\StatusController.class
+com\architecture\status\interfaces\rest\StatusExceptionHandler.class
+com\architecture\status\application\StatusNotFoundException.class
 com\architecture\status\infrastructure\persistence\StatusRepositoryAdapter.class
 com\architecture\status\infrastructure\persistence\StatusEntity.class
 com\architecture\status\infrastructure\persistence\StatusEntity$StatusEntityBuilder.class

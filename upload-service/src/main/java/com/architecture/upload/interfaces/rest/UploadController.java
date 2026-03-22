@@ -36,7 +36,7 @@ public class UploadController {
 
         @PostMapping
         public ResponseEntity<UploadResponseDTO> uploadDiagram(
-                        @RequestParam("file") MultipartFile file,
+                        @RequestParam(value = "file", required = false) MultipartFile file,
                         @RequestHeader(value = CORRELATION_ID_HEADER, required = false) String correlationIdHeader) {
                 String correlationId = resolveCorrelationId(correlationIdHeader);
                 String originalFilename = file != null ? file.getOriginalFilename() : "";

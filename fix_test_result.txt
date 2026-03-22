@@ -1,0 +1,2 @@
+{"diagramId":null,"status":"BAD_REQUEST","message":"O arquivo n├úo pode ser vazio."}
+HTTP_STATUS:400

@@ -22,13 +22,21 @@ logger = logging.getLogger(__name__)
 def _log_with_context(level: str, message: str, diagram_id: str | None = None, event_type: str | None = None,
                       queue_url: str | None = None, correlation_id: str | None = None):
     log_func = getattr(logger, level, logger.info)
+    diagram_id_value = diagram_id or ""
+    event_type_value = event_type or ""
+    queue_url_value = queue_url or ""
+    correlation_id_value = correlation_id or ""
     log_func(
         message,
         extra={
-            "diagram_id": diagram_id or "",
-            "event_type": event_type or "",
-            "queue_url": queue_url or "",
-            "correlation_id": correlation_id or "",
+            "diagramId": diagram_id_value,
+            "eventType": event_type_value,
+            "queueUrl": queue_url_value,
+            "correlationId": correlation_id_value,
+            "diagram_id": diagram_id_value,
+            "event_type": event_type_value,
+            "queue_url": queue_url_value,
+            "correlation_id": correlation_id_value,
         },
     )
 

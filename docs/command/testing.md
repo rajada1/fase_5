@@ -7,6 +7,13 @@ Execute `docker-compose up -d` na pasta raiz para iniciar:
 
 Aguarde a inicialização.
 
+### Hardening de rede local (infra)
+
+O `docker-compose.yml` expõe LocalStack/Postgres/Redis somente em `127.0.0.1` e conecta os serviços à rede dedicada `infra_internal`.
+
+- Isso reduz exposição da infra para a rede externa da máquina.
+- Para acesso remoto intencional (ex.: laboratório), ajuste os bindings de porta conscientemente.
+
 ## 2. Iniciar os Microsserviços nativamente (ou compilar imagens Docker)
 Inicie todos os microsserviços interativamente na sua IDE ou utilizando `mvn spring-boot:run` / `uvicorn main:app --reload`.
 - API Gateway (8080)
@@ -15,6 +22,13 @@ Inicie todos os microsserviços interativamente na sua IDE ou utilizando `mvn sp
 - AI Analysis Service (8083)
 - Report Service (8084)
 - Status Service (8085)
+
+### Hardening de autenticação no Gateway
+
+O `api-gateway` usa OAuth2/JWT por padrão para `/api/v1/**`.
+
+- Para **modo local de testes sem token**, mantenha `ALLOW_INSECURE_LOCAL_API=true`.
+- Para **modo endurecido** (recomendado em homolog/prod), defina `ALLOW_INSECURE_LOCAL_API=false`.
 
 ## 3. Fazer Upload de um Arquivo
 ```bash

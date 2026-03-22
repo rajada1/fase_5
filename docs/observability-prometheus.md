@@ -11,9 +11,10 @@ Além das métricas, os serviços foram padronizados para registrar campos de co
 
 ### Campos de correlação adotados
 
-- `diagramId` ou `diagram_id`
-- `eventType` ou `event_type`
-- `queueUrl` ou `queue_url`
+- `diagramId` (canônico; `diagram_id` mantido temporariamente por compatibilidade)
+- `eventType` (canônico; `event_type` mantido temporariamente por compatibilidade)
+- `queueUrl` (canônico; `queue_url` mantido temporariamente por compatibilidade)
+- `correlationId` (canônico; `correlation_id` mantido temporariamente por compatibilidade)
 - `state`/`targetState` para transições de status
 
 ### Pontos principais com correlação

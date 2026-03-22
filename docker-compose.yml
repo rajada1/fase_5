@@ -4,7 +4,7 @@ services:
   localstack:
     image: localstack/localstack:latest
     ports:
-      - "4566:4566"
+      - "127.0.0.1:4566:4566"
     environment:
       - SERVICES=s3,sns,sqs
       - DEFAULT_REGION=us-east-1
@@ -14,22 +14,32 @@ services:
       - "${LOCALSTACK_VOLUME_DIR:-./volume}:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh" # Initialization script
+    networks:
+      - infra_internal
 
   postgres:
     image: postgres:15-alpine
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init-dbs.sql:/docker-entrypoint-initdb.d/init-dbs.sql # Initialization script
+    networks:
+      - infra_internal
 
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    networks:
+      - infra_internal
 
 volumes:
   postgres_data:
+
+networks:
+  infra_internal:
+    driver: bridge

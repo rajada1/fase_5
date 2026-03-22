@@ -155,6 +155,30 @@ Para previsibilidade e uso controlado da IA no fluxo:
 - A saída é validada como JSON estruturado (`components`, `risks`, `recommendations`), mas não substitui revisão técnica humana.
 - Em falha do provedor LLM, o sistema não gera “sucesso simulado”; falhas são tratadas explicitamente no pipeline assíncrono.
 
+## 🔒 Riscos e Limitações de Segurança (Consolidado)
+
+Esta seção consolida os principais riscos/limitações de segurança e respectivos controles atuais do projeto.
+
+### Controles implementados
+
+- **Borda de entrada (Gateway):** OAuth2/JWT para `/api/v1/**`, com modo local inseguro explicitamente controlado por `ALLOW_INSECURE_LOCAL_API`.
+- **Superfície administrativa mínima:** apenas `/actuator/health` e `/actuator/info` públicos no gateway.
+- **Headers HTTP de proteção:** `HSTS`, `X-Frame-Options` e `X-Content-Type-Options` no gateway.
+- **Validação robusta de uploads:** extensão, MIME, tamanho, nome/path traversal e assinatura binária (magic bytes).
+- **Falhas de IA tratadas com segurança:** sem fallback de sucesso; eventos de erro propagam status `Erro` no pipeline.
+- **Infra local reduzida:** serviços de apoio (LocalStack/Postgres/Redis) expostos em loopback (`127.0.0.1`) e rede dedicada `infra_internal` no `docker-compose`.
+
+### Limitações e riscos residuais
+
+- **Comunicação interna em produção:** ainda requer detalhamento e implantação de controles de rede internos e/ou mTLS no ambiente final.
+- **Operação contínua de segurança:** recomenda-se rotina formal de revisão dos artifacts E2E e dos alertas operacionais (DLQ/retry).
+- **Dependência de configuração de ambiente:** hardening depende de variáveis e segredos corretamente definidos no deploy (ex.: JWT/OIDC, endpoints e políticas IAM).
+
+### Próximos passos recomendados
+
+- Definir baseline de segurança leste-oeste para produção (segmentação de rede e política de autenticação entre serviços).
+- Formalizar política de retenção e revisão periódica dos artifacts de QA/E2E.
+
 ## ☁️ Implantação em Produção (AWS)
 O projeto contém a pasta `/terraform`.
 Uma vez ajustadas as credenciais no seu AWS CLI, rode `terraform init` e `terraform apply` contendo a respectiva conta autenticada para instanciar os repositórios reais e serviços faturáveis no provedor da Amazon. As configurações padrões vão alocar 6 Repositórios ECR, Instâncias t3.micro do Amazon RDS e as referências completas para filas de mensageria SNS/SQS.

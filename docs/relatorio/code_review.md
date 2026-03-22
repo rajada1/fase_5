@@ -55,7 +55,7 @@ Riscos mais relevantes para fechamento completo dos requisitos:
 | Docker | **Atende** | Dockerfiles por serviço + `docker-compose.yml` | Sem gap crítico.
 | Docker Compose/K8s | **Atende** | Ambiente local com LocalStack/Postgres/Redis via Compose | Sem gap crítico.
 | CI/CD com build, testes e deploy | **Atende** | `services-ci-cd.yml` e `terraform-infra.yml` (build/test/deploy + plan/apply) | Sem gap crítico.
-| Logs estruturados | **Atende com ressalva** | Correlação por `diagramId`, `eventType`, `correlationId` e docs de observabilidade | Padronizar definitivamente nomenclatura de tracing entre serviços.
+| Logs estruturados | **Atende** | Correlação padronizada por `diagramId`, `eventType`, `queueUrl` e `correlationId` entre Java e Python (com compatibilidade legada documentada) | Sem gap crítico.
 | Tratamento de erros | **Atende** | Handlers Java, descarte de payload inválido, retries/dedupe em pollers | Evoluir alerta operacional de DLQ/retry em produção.
 | Testes unitários | **Atende** | Suítes Java/Python e E2E validadas na rodada (`51 passed / 0 failed`) | Sem gap crítico.
 | README explicativo | **Atende** | Fluxo e operação descritos, incluindo seção formal de limitações do modelo de IA | Sem gap crítico.
@@ -64,12 +64,12 @@ Riscos mais relevantes para fechamento completo dos requisitos:
 
 | Requisito | Status | Evidência | Gaps / Observações |
 |---|---|---|---|
-| Requisitos básicos de segurança adotados | **Atende com ressalva** | Gateway com OAuth2/JWT e checklist AWS/GitHub/OIDC | Gateway local permite `/api/v1/**` para testes; documentar escopo e hardening de produção.
+| Requisitos básicos de segurança adotados | **Atende** | Gateway com OAuth2/JWT, flag explícita de modo inseguro local (`ALLOW_INSECURE_LOCAL_API`), exposição mínima de actuator (`/actuator/health` e `/actuator/info`) e headers HTTP de segurança (HSTS, X-Frame-Options, X-Content-Type-Options) | Sem gap crítico.
 | Validação de entradas não confiáveis | **Atende** | Validação robusta de upload (MIME, extensão, tamanho, assinatura do arquivo) e descarte de payload malformado nos pollers | Sem gap crítico.
 | Uso controlado de IA (escopo/previsibilidade) | **Atende** | Prompt com formato JSON, sanitização/limites e seção de limitações no README | Sem gap crítico.
 | Tratamento seguro de falhas de IA | **Atende** | Eventos de falha e atualização de status para erro, sem fallback de sucesso simulado | Sem gap crítico.
-| Segurança na comunicação entre serviços | **Parcial** | Mensageria AWS + autenticação no gateway | Falta detalhar mTLS/controles de rede internos no ambiente final.
-| Riscos/limitações de segurança documentados | **Parcial** | Itens em docs de QA/checklist | Consolidar seção única de riscos e limitações na documentação principal.
+| Segurança na comunicação entre serviços | **Parcial** | Mensageria AWS + autenticação no gateway + isolamento de infra local em rede dedicada (`infra_internal`) e bindings em loopback no `docker-compose.yml` | Falta detalhar mTLS/controles de rede internos no ambiente final.
+| Riscos/limitações de segurança documentados | **Atende** | Seção única consolidada no README (`Riscos e Limitações de Segurança`), cobrindo controles implementados, riscos residuais e próximos passos | Sem gap crítico.
 
 ---
 
@@ -108,19 +108,17 @@ Conclusão da rodada: contrato PT-BR, segurança de upload e suíte automatizada
 ## 5) Achados Priorizados
 
 ### P1 (Média prioridade)
-1. **Padronizar campos de rastreio e logging estruturado** entre todos os serviços.
-2. **Evoluir segurança de comunicação interna** para ambientes produtivos (segmentação de rede/controles adicionais).
+1. **Evoluir segurança de comunicação interna** para ambientes produtivos (segmentação de rede/controles adicionais).
 
 ### P2 (Baixa prioridade)
-3. **Definir política de retenção e revisão periódica dos artifacts E2E** para auditoria operacional contínua.
+2. **Definir política de retenção e revisão periódica dos artifacts E2E** para auditoria operacional contínua.
 
 ---
 
 ## 6) Recomendações Objetivas (próximo sprint)
 
-1. Padronizar campos de observabilidade/logging entre serviços Java e Python.
-2. Evoluir hardening de comunicação interna para produção.
-3. Definir retenção e rotina de revisão dos artifacts de logs/resultados do workflow `qa-e2e-manual.yml`.
+1. Evoluir hardening de comunicação interna para produção.
+2. Definir retenção e rotina de revisão dos artifacts de logs/resultados do workflow `qa-e2e-manual.yml`.
 
 ---
 

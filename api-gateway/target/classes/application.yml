@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+app:
+  security:
+    allow-insecure-local-api: ${ALLOW_INSECURE_LOCAL_API:true}
+
 spring:
   application:
     name: api-gateway

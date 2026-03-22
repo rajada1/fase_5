@@ -1,0 +1,58 @@
+=== AI Analysis Service Health ===
+{"status":"ok","service":"ai-analysis-service","dedupeStats":{"total":25,"hits":0,"misses":25,"redis_backend":25,"memory_backend":0,"redis_failures":0}}
+
+=== AI Analysis Metrics ===
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 11175.0
+python_gc_objects_collected_total{generation="1"} 5465.0
+python_gc_objects_collected_total{generation="2"} 1284.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 121.0
+python_gc_collections_total{generation="1"} 11.0
+python_gc_collections_total{generation="2"} 1.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="13",patchlevel="9",version="3.13.9"} 1.0
+# HELP ai_analysis_messages_received_total Total de mensagens SQS recebidas pelo ai-analysis-service
+# TYPE ai_analysis_messages_received_total counter
+ai_analysis_messages_received_total 25.0
+# HELP ai_analysis_messages_received_created Total de mensagens SQS recebidas pelo ai-analysis-service
+# TYPE ai_analysis_messages_received_created gauge
+ai_analysis_messages_received_created 1.7742094433191853e+09
+# HELP ai_analysis_messages_processed_total Total de mensagens processadas com sucesso no ai-analysis-service
+# TYPE ai_analysis_messages_processed_total counter
+ai_analysis_messages_processed_total 25.0
+# HELP ai_analysis_messages_processed_created Total de mensagens processadas com sucesso no ai-analysis-service
+# TYPE ai_analysis_messages_processed_created gauge
+ai_analysis_messages_processed_created 1.7742094433192258e+09
+# HELP ai_analysis_messages_failed_total Total de falhas de processamento de mensagens no ai-analysis-service
+# TYPE ai_analysis_messages_failed_total counter
+ai_analysis_messages_failed_total 0.0
+# HELP ai_analysis_messages_failed_created Total de falhas de processamento de mensagens no ai-analysis-service
+# TYPE ai_analysis_messages_failed_created gauge
+ai_analysis_messages_failed_created 1.7742094433192394e+09
+# HELP ai_analysis_messages_deduped_total Total de mensagens ignoradas por deduplicacao no ai-analysis-service
+# TYPE ai_analysis_messages_deduped_total counter
+ai_analysis_messages_deduped_total 0.0
+# HELP ai_analysis_messages_deduped_created Total de mensagens ignoradas por deduplicacao no ai-analysis-service
+# TYPE ai_analysis_messages_deduped_created gauge
+ai_analysis_messages_deduped_created 1.7742094433192513e+09
+
+=== LocalStack S3 - Listar Objetos ===
+<?xml version='1.0' encoding='utf-8'?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><IsTruncated>true</IsTruncated><Name>architecture-diagrams-dev</Name><Prefix /><MaxKeys>5</MaxKeys><KeyCount>5</KeyCount><NextContinuationToken>ZGlhZ3JhbXMvMjBlNTlkNzYtZmNkZi00Nzc2LWFkMmMtYzhhZWUwZGQ2OTRjLnBkZg==</NextContinuationToken><Contents><Key>diagrams/03d541ca-e070-49f0-a024-95683024fe43.png</Key><ETag>"f9ca235b5e887fd2bb99d2aaaafe80f4"</ETag><Size>70</Size><LastModified>2026-03-22T19:58:44.000Z</LastModified><StorageClass>STANDARD</StorageClass><ChecksumAlgorithm>CRC64NVME</ChecksumAlgorithm><ChecksumType>FULL_OBJECT</ChecksumType></Contents><Contents><Key>diagrams/09090553-65a6-4091-9ed7-a88d9c01ad09.png</Key><ETag>"febe4a2202942a8f63028d5a3b3a6fc2"</ETag><Size>20</Size><LastModified>2026-03-22T18:03:09.000Z</LastModified><StorageClass>STANDARD</StorageClass><ChecksumAlgorithm>CRC64NVME</ChecksumAlgorithm><ChecksumType>FULL_OBJECT</ChecksumType></Contents><Contents><Key>diagrams/1b3c1006-8a3f-4a71-8d61-fe9e04d6f851.png</Key><ETag>"f9ca235b5e887fd2bb99d2aaaafe80f4"</ETag><Size>70</Size><LastModified>2026-03-22T19:55:40.000Z</LastModified><StorageClass>STANDARD</StorageClass><ChecksumAlgorithm>CRC64NVME</ChecksumAlgorithm><ChecksumType>FULL_OBJECT</ChecksumType></Contents><Contents><Key>diagrams/1e217404-151a-4c35-bc90-359d61724200.pdf</Key><ETag>"a234e82b5ac6e45a7b7ea52ea069972f"</ETag><Size>11</Size><LastModified>2026-03-22T19:58:41.000Z</LastModified><StorageClass>STANDARD</StorageClass><ChecksumAlgorithm>CRC64NVME</ChecksumAlgorithm><ChecksumType>FULL_OBJECT</ChecksumType></Contents><Contents><Key>diagrams/1f94fb97-622a-47bb-9cb2-40a3425c80b9.png</Key><ETag>"91cbf18ee794758b9df5bdd3bc702a2c"</ETag><Size>3980</Size><LastModified>2026-03-22T21:47:36.000Z</LastModified><StorageClass>STANDARD</StorageClass><ChecksumAlgorithm>CRC64NVME</ChecksumAlgorithm><ChecksumType>FULL_OBJECT</ChecksumType></Contents></ListBucketResult>
+
+=== LocalStack SNS Topics ===
+<?xml version='1.0' encoding='utf-8'?>
+<Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist</Message><RequestId>891c35ef-f746-4446-ac3f-fa5e609c832f</RequestId><BucketName>_aws</BucketName></Error>
+
+=== LocalStack SQS Queues ===
+<?xml version='1.0' encoding='utf-8'?>
+<Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist</Message><RequestId>e27247f9-3d33-4e4e-8a20-c8e8d987f76b</RequestId><BucketName>_aws</BucketName></Error>

@@ -1,7 +1,7 @@
 package com.architecture.upload.application;
 
 import com.architecture.upload.application.ports.DiagramRepository;
-import com.architecture.upload.application.ports.MessagingService;
+import com.architecture.upload.application.ports.OutboxService;
 import com.architecture.upload.application.ports.StorageService;
 import com.architecture.upload.domain.Diagram;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ class UploadUseCaseTest {
     private DiagramRepository diagramRepository;
 
     @Mock
-    private MessagingService messagingService;
+    private OutboxService outboxService;
 
     @InjectMocks
     private UploadUseCase uploadUseCase;
@@ -42,7 +42,7 @@ class UploadUseCaseTest {
         String contentType = "image/png";
 
         // When
-        Diagram result = uploadUseCase.uploadDiagram(fileName, mockStream, fileSize, contentType);
+        Diagram result = uploadUseCase.uploadDiagram(fileName, mockStream, fileSize, contentType, "corr-123");
 
         // Then expected business rules:
         assertNotNull(result);
@@ -55,13 +55,13 @@ class UploadUseCaseTest {
         // 2. Validate Extension extraction
         assertTrue(result.getS3Key().endsWith(".png"), "A chave do S3 deve manter a extensão original do arquivo");
 
-        // 3. Validate orchestrations (storage -> db -> messaging)
+        // 3. Validate orchestrations (storage -> db -> outbox)
         verify(storageService).uploadFile(eq(result.getS3Key()), eq(mockStream), eq(fileSize), eq(contentType));
 
         verify(diagramRepository)
                 .save(argThat(d -> d.getId().equals(result.getId()) && "RECEIVED".equals(d.getStatus())));
 
         // 4. Validate Event formulation
-        verify(messagingService).publishFileUploadedEvent(result.getId(), result.getS3Key());
+        verify(outboxService).enqueueFileUploadedEvent(result.getId(), result.getS3Key(), "corr-123");
     }
 }

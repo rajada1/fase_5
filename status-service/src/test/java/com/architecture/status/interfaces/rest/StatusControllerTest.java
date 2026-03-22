@@ -1,5 +1,6 @@
 package com.architecture.status.interfaces.rest;
 
+import com.architecture.status.application.StatusNotFoundException;
 import com.architecture.status.application.UpdateStatusUseCase;
 import com.architecture.status.domain.Status;
 import org.junit.jupiter.api.Test;
@@ -7,15 +8,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseEntity;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class StatusControllerTest {
@@ -26,8 +27,14 @@ class StatusControllerTest {
     @InjectMocks
     private StatusController statusController;
 
+    private MockMvc buildMockMvc() {
+        return MockMvcBuilders.standaloneSetup(statusController)
+                .setControllerAdvice(new StatusExceptionHandler())
+                .build();
+    }
+
     @Test
-    void shouldReturn200WhenStatusExists() {
+    void shouldReturn200WhenStatusExists() throws Exception {
         Status status = Status.builder()
                 .diagramId("diag-200")
                 .state("PROCESSING")
@@ -36,33 +43,33 @@ class StatusControllerTest {
 
         when(updateStatusUseCase.getStatus("diag-200")).thenReturn(status);
 
-        ResponseEntity<StatusResponseDTO> response = statusController.getStatus("diag-200");
+        MockMvc mockMvc = buildMockMvc();
 
-        assertEquals(HttpStatusCode.valueOf(200), response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("diag-200", response.getBody().getDiagramId());
-        assertEquals("PROCESSING", response.getBody().getState());
+        mockMvc.perform(get("/api/v1/status/diag-200"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.diagramId").value("diag-200"))
+                .andExpect(jsonPath("$.state").value("PROCESSING"));
     }
 
     @Test
-    void shouldReturn404WhenStatusIsNotFound() {
+    void shouldReturn404WhenStatusIsNotFound() throws Exception {
         when(updateStatusUseCase.getStatus("diag-404"))
-                .thenThrow(new RuntimeException("Status não encontrado para o diagrama: diag-404"));
+                .thenThrow(new StatusNotFoundException("diag-404"));
 
-        ResponseEntity<StatusResponseDTO> response = statusController.getStatus("diag-404");
+        MockMvc mockMvc = buildMockMvc();
 
-        assertEquals(HttpStatusCode.valueOf(404), response.getStatusCode());
-        assertNull(response.getBody());
+        mockMvc.perform(get("/api/v1/status/diag-404"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void shouldReturn500WhenUnexpectedErrorOccurs() {
+    void shouldReturn500WhenUnexpectedErrorOccurs() throws Exception {
         when(updateStatusUseCase.getStatus("diag-500"))
                 .thenThrow(new RuntimeException("database timeout"));
 
-        ResponseEntity<StatusResponseDTO> response = statusController.getStatus("diag-500");
+        MockMvc mockMvc = buildMockMvc();
 
-        assertEquals(HttpStatusCode.valueOf(500), response.getStatusCode());
-        assertNull(response.getBody());
+        mockMvc.perform(get("/api/v1/status/diag-500"))
+                .andExpect(status().isInternalServerError());
     }
 }

@@ -28,7 +28,7 @@ class UpdateStatusUseCaseTest {
     @Test
     void shouldSuccessfullyTransitionFromReceivedToProcessing() {
         Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("RECEIVED").build();
-        when(statusRepository.findByDiagramId(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
+        when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
 
         updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING");
 
@@ -38,8 +38,8 @@ class UpdateStatusUseCaseTest {
 
     @Test
     void shouldThrowExceptionWhenTransitioningBackwards() {
-        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("COMPLETED").build();
-        when(statusRepository.findByDiagramId(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
+        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("ANALYZED").build();
+        when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING"));
@@ -50,11 +50,21 @@ class UpdateStatusUseCaseTest {
 
     @Test
     void shouldCreateNewStateIfNotFound() {
-        when(statusRepository.findByDiagramId(DIAGRAM_ID)).thenReturn(Optional.empty());
+        when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.empty());
 
         updateStatusUseCase.updateStatus(DIAGRAM_ID, "RECEIVED");
 
         verify(statusRepository).save(
                 argThat(status -> "RECEIVED".equals(status.getState()) && status.getDiagramId().equals(DIAGRAM_ID)));
+    }
+
+    @Test
+    void shouldIgnoreDuplicateStateTransition() {
+        Status existingStatus = Status.builder().diagramId(DIAGRAM_ID).state("PROCESSING").build();
+        when(statusRepository.findByDiagramIdForUpdate(DIAGRAM_ID)).thenReturn(Optional.of(existingStatus));
+
+        updateStatusUseCase.updateStatus(DIAGRAM_ID, "PROCESSING");
+
+        verify(statusRepository, never()).save(any());
     }
 }

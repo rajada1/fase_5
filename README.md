@@ -1,6 +1,6 @@
 # Analisador de Arquitetura de Software com IA
 
-Este projeto é um sistema backend distribuído construído com uma arquitetura de microsserviços. Ele recebe diagramas de arquitetura de software (imagens ou PDFs), processa os arquivos usando OCR (simulado neste contexto), e utiliza Inteligência Artificial (banco em LLMs) para identificar componentes, verificar pontos únicos de falha, apontar riscos na infraestrutura e sugerir recomendações de melhoria. 
+Este projeto é um sistema backend distribuído construído com uma arquitetura de microsserviços. Ele recebe diagramas de arquitetura de software (imagens ou PDFs), processa os arquivos com OCR real (AWS Textract para imagens + pipeline local `pdf2image` + `pytesseract` para PDF e fallback), e utiliza Inteligência Artificial (baseada em LLMs) para identificar componentes, verificar pontos únicos de falha, apontar riscos na infraestrutura e sugerir recomendações de melhoria.
 
 Toda a arquitetura é "cloud-native" e foi projetada para rodar integralmente dentro da AWS (Amazon Web Services), mas também dispõe de infraestrutura configurada com LocalStack para execução local.
 
@@ -20,7 +20,7 @@ Toda a arquitetura é "cloud-native" e foi projetada para rodar integralmente de
 `/fase_5`
 * `api-gateway/` : Roteador central e controle de acessos (Spring Cloud).
 * `upload-service/` : Recebe a imagem, insere no S3 e avisa via SNS (Spring Boot).
-* `processing-service/` : Consome a fila SQS, extrai dados simulando OCR (Python/FastAPI).
+* `processing-service/` : Consome a fila SQS e extrai dados com OCR real (Python/FastAPI).
 * `ai-analysis-service/` : Analisa os componentes via IA e reporta falhas e riscos (Python/FastAPI).
 * `report-service/` : Gera o JSON de diagnóstico final em um banco próprio (Spring Boot).
 * `status-service/` : Tarefa cron que escuta as filas para rastrear e persistir o status global de todo o pipeline (Spring Boot).
@@ -44,6 +44,17 @@ O `docker-compose.yml` criará um contêiner Postgres (na porta `5432` que já r
 
 Aguarde alguns instantes até que estes serviços inicializem. Você pode visualizar os logs no Docker Desktop.
 
+### Passo 1.1: Configurar variáveis locais dos serviços Python
+
+Para desenvolvimento local com LocalStack, use o template da raiz:
+
+```bash
+copy .env.local.example processing-service\.env
+copy .env.local.example ai-analysis-service\.env
+```
+
+Isso injeta `AWS_ENDPOINT_URL=http://localhost:4566` somente no ambiente local, mantendo o código com padrão seguro para produção.
+
 ### Passo 2: Iniciar os Microsserviços Individualmente
 Para um teste de desenvolvimento rápido, você pode rodar (na IDE ou no terminal) cada aplicação separadamente:
 
@@ -61,6 +72,34 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8082
 ```
 *(Repita para ai-analysis-service na porta 8083)*
+
+Para OCR local de PDF/imagem no `processing-service`, instale também no sistema os binários:
+
+- `tesseract-ocr`
+- `poppler-utils` (fornece `pdftoppm`, usado por `pdf2image`)
+
+Para habilitar deduplicação distribuída entre réplicas/restarts, configure a variável `REDIS_URL` nos serviços Python.
+
+Exemplo local (usando o Redis do `docker-compose`):
+```bash
+set REDIS_URL=redis://localhost:6379/0
+```
+
+Se `REDIS_URL` não estiver definida, o sistema usa fallback em memória (válido apenas para uma instância por vez).
+
+Os serviços Python expõem `dedupeStats` em `/health` para observabilidade operacional (hits/misses/uso de backend Redis vs memória).
+
+Além disso, `processing-service` e `ai-analysis-service` expõem métricas Prometheus em `/metrics` (formato `text/plain`) com contadores de:
+
+- mensagens recebidas,
+- mensagens processadas com sucesso,
+- mensagens deduplicadas,
+- falhas de processamento.
+
+Referências operacionais:
+
+- Guia de consultas e SLO: `docs/observability-prometheus.md`
+- Regras de alerta base: `docs/prometheus-alert-rules.yml`
 
 **Portas Esperadas para cada serviço:**
 - API Gateway: `8080`
@@ -91,11 +130,11 @@ Como o processamento pode demorar, o client realiza _Long-Polling_ localizando o
 curl -X GET http://localhost:8080/api/v1/status/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="
 ```
-O Estado retornado transitará na respectiva ordem contínua: `RECEIVED` → `PROCESSING` → `ANALYZING` → `COMPLETED`.
+O Estado retornado transitará na ordem esperada: `RECEIVED` → `PROCESSING` → `ANALYZED` (ou `ERROR` em caso de falha).
 
 **3. Buscar o Diagnóstico de IA Final:**
 
-Quando o fluxo apontar como status definitivo o enum de estado `COMPLETED`, sua resposta final com riscos infraestruturais detalhados pela IA poderá ser buscada aqui:
+Quando o fluxo apontar como status definitivo o enum de estado `ANALYZED`, sua resposta final com riscos infraestruturais detalhados pela IA poderá ser buscada aqui:
 ```bash
 curl -X GET http://localhost:8080/api/v1/reports/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="
@@ -104,3 +143,66 @@ curl -X GET http://localhost:8080/api/v1/reports/{diagramId} \
 ## ☁️ Implantação em Produção (AWS)
 O projeto contém a pasta `/terraform`.
 Uma vez ajustadas as credenciais no seu AWS CLI, rode `terraform init` e `terraform apply` contendo a respectiva conta autenticada para instanciar os repositórios reais e serviços faturáveis no provedor da Amazon. As configurações padrões vão alocar 6 Repositórios ECR, Instâncias t3.micro do Amazon RDS e as referências completas para filas de mensageria SNS/SQS.
+
+Para produção, forneça também `TF_VAR_redis_url` (por exemplo, endpoint do ElastiCache Redis) para que `processing-service` e `ai-analysis-service` façam dedupe distribuída via Redis.
+
+## 🔁 CI/CD no Monorepo (GitHub Actions)
+
+O projeto utiliza dois workflows independentes:
+
+- `.github/workflows/services-ci-cd.yml`
+  - Aciona apenas quando houver alteração em pastas de serviços.
+  - Executa build e testes somente do(s) serviço(s) alterado(s).
+  - Gera a imagem Docker, publica no Amazon ECR e atualiza o serviço no Amazon ECS (Fargate).
+- `.github/workflows/terraform-infra.yml`
+  - Aciona apenas quando houver alteração em `terraform/**`.
+  - Executa `terraform init`, `fmt`, `validate`, `plan` e `apply` (apenas em push para `main`).
+
+### Filtragem por caminho (path-based)
+
+No workflow de serviços, os caminhos monitorados são:
+
+- `api-gateway/**`
+- `upload-service/**`
+- `processing-service/**`
+- `ai-analysis-service/**`
+- `report-service/**`
+- `status-service/**`
+
+### Variáveis e segredos necessários no GitHub
+
+**Repository Variables**
+- `DEPLOY_ENV` (ex.: `dev` ou `prod`)
+
+**Repository Secrets**
+- `AWS_ROLE_ARN`
+- `AWS_REGION` (ex.: `us-east-1`)
+- `AWS_ACCESS_KEY_ID` (opcional, fallback)
+- `AWS_SECRET_ACCESS_KEY` (opcional, fallback)
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `OPENAI_API_KEY`
+- `REDIS_URL`
+- `COGNITO_USER_POOL_ID`
+
+### Autenticação AWS no pipeline
+
+- O pipeline usa OIDC com `aws-actions/configure-aws-credentials`.
+- `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` podem ser definidos como fallback via GitHub Secrets (opcional).
+
+Para configuração completa de OIDC e permissões IAM, consulte:
+- `docs/github-oidc-setup.md`
+- `docs/iam/trust-policy.example.json`
+- `docs/iam/permissions-policy.example.json`
+
+### Execução manual (`workflow_dispatch`)
+
+Você pode disparar os workflows manualmente pelo GitHub:
+
+1. Acesse **Actions** no repositório.
+2. Escolha o workflow desejado:
+  - `Services CI/CD (Monorepo)`
+  - `Terraform Infra CI/CD`
+3. Clique em **Run workflow** e informe `deploy_env` (ex.: `dev` ou `prod`).
+
+> Observação: em execução manual, o valor de `deploy_env` sobrescreve o `DEPLOY_ENV` configurado em Repository Variables.

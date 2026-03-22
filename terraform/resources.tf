@@ -54,6 +54,85 @@ resource "aws_sqs_queue" "analysis_completed_queue" {
   })
 }
 
+# Queue Policies (allow SNS topics to publish to SQS queues)
+data "aws_iam_policy_document" "file_uploaded_queue_policy_doc" {
+  statement {
+    sid    = "AllowFileUploadedTopicPublish"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.file_uploaded_queue.arn]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [aws_sns_topic.file_uploaded.arn]
+    }
+  }
+}
+
+resource "aws_sqs_queue_policy" "file_uploaded_queue_policy" {
+  queue_url = aws_sqs_queue.file_uploaded_queue.id
+  policy    = data.aws_iam_policy_document.file_uploaded_queue_policy_doc.json
+}
+
+data "aws_iam_policy_document" "diagram_processed_queue_policy_doc" {
+  statement {
+    sid    = "AllowDiagramProcessedTopicPublish"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.diagram_processed_queue.arn]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [aws_sns_topic.diagram_processed.arn]
+    }
+  }
+}
+
+resource "aws_sqs_queue_policy" "diagram_processed_queue_policy" {
+  queue_url = aws_sqs_queue.diagram_processed_queue.id
+  policy    = data.aws_iam_policy_document.diagram_processed_queue_policy_doc.json
+}
+
+data "aws_iam_policy_document" "analysis_completed_queue_policy_doc" {
+  statement {
+    sid    = "AllowAnalysisCompletedTopicPublish"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.analysis_completed_queue.arn]
+
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [aws_sns_topic.analysis_completed.arn]
+    }
+  }
+}
+
+resource "aws_sqs_queue_policy" "analysis_completed_queue_policy" {
+  queue_url = aws_sqs_queue.analysis_completed_queue.id
+  policy    = data.aws_iam_policy_document.analysis_completed_queue_policy_doc.json
+}
+
 # Subscriptions (SNS -> SQS)
 resource "aws_sns_topic_subscription" "file_uploaded_sub" {
   topic_arn = aws_sns_topic.file_uploaded.arn
@@ -75,20 +154,20 @@ resource "aws_sns_topic_subscription" "analysis_completed_sub" {
 
 # RDS Subnet Group and Instance
 resource "aws_db_instance" "postgres" {
-  identifier           = "architecture-db-${var.environment}"
-  allocated_storage    = 20
-  engine               = "postgres"
-  engine_version       = "15.4"
-  instance_class       = "db.t3.micro"
-  username             = "postgres"
-  password             = "postgres" # use secrets manager in prod
-  db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-  skip_final_snapshot  = false
+  identifier                = "architecture-db-${var.environment}"
+  allocated_storage         = 20
+  engine                    = "postgres"
+  engine_version            = "15.4"
+  instance_class            = "db.t3.micro"
+  username                  = var.db_username
+  password                  = var.db_password
+  db_subnet_group_name      = aws_db_subnet_group.rds_subnet_group.name
+  vpc_security_group_ids    = [aws_security_group.rds_sg.id]
+  skip_final_snapshot       = false
   final_snapshot_identifier = "architecture-db-final-${var.environment}"
-  backup_retention_period = 7
-  multi_az             = true
-  publicly_accessible  = false
+  backup_retention_period   = 7
+  multi_az                  = true
+  publicly_accessible       = false
 }
 
 # ECR Repositories

@@ -4,8 +4,11 @@ server:
 spring:
   application:
     name: api-gateway
-  config:
-    import: "optional:aws-secretsmanager:/secret/api-gateway"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://cognito-idp.${AWS_REGION:us-east-1}.amazonaws.com/${COGNITO_USER_POOL_ID:mock-pool-id}
   cloud:
     gateway:
       routes:
@@ -34,16 +37,16 @@ spring:
         - id: status-service
           uri: http://localhost:8085
           predicates:
-              - Path=/api/v1/status/**
+            - Path=/api/v1/status/**
           filters:
-              - name: CircuitBreaker
-                args:
-                    name: statusServiceCB
-                    fallbackUri: forward:/fallback/status
-              - name: RequestRateLimiter
-                args:
-                    redis-rate-limiter.replenishRate: 5
-                    redis-rate-limiter.burstCapacity: 10
+            - name: CircuitBreaker
+              args:
+                name: statusServiceCB
+                fallbackUri: forward:/fallback/status
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 5
+                redis-rate-limiter.burstCapacity: 10
 
 resilience4j:
   circuitbreaker:
@@ -62,13 +65,6 @@ resilience4j:
         baseConfig: default
       statusServiceCB:
         baseConfig: default
-
-# JWT Validation Config via AWS Cognito
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://cognito-idp.${AWS_REGION:us-east-1}.amazonaws.com/${COGNITO_USER_POOL_ID:mock-pool-id}
 
 management:
   endpoints:

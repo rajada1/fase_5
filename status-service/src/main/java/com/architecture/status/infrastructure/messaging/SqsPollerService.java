@@ -1,6 +1,7 @@
 package com.architecture.status.infrastructure.messaging;
 
 import com.architecture.status.application.UpdateStatusUseCase;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -40,12 +41,12 @@ public class SqsPollerService {
 
     @Scheduled(fixedDelay = 2000)
     public void pollProcessedQueue() {
-        pollQueue(processedQueueUrl, "ANALYZING");
+        pollQueue(processedQueueUrl, "PROCESSING");
     }
 
     @Scheduled(fixedDelay = 2000)
     public void pollAnalysisQueue() {
-        pollQueue(analysisQueueUrl, "COMPLETED");
+        pollQueue(analysisQueueUrl, "ANALYZED");
     }
 
     private void pollQueue(String queueUrl, String newState) {
@@ -62,20 +63,32 @@ public class SqsPollerService {
                 processMessage(message, queueUrl, newState);
             }
         } catch (Exception e) {
-            log.error("Error polling SQS queue {}: {}", queueUrl, e.getMessage());
+            log.error("Erro ao consumir fila SQS. queueUrl={} error={}", queueUrl, e.getMessage());
         }
     }
 
     private void processMessage(Message message, String queueUrl, String newState) {
         try {
-            JsonNode bodyNode = objectMapper.readTree(message.body());
+            JsonNode bodyNode;
+            try {
+                bodyNode = objectMapper.readTree(message.body());
 
-            if (bodyNode.has("Message")) {
-                bodyNode = objectMapper.readTree(bodyNode.get("Message").asText());
+                if (bodyNode.has("Message")) {
+                    bodyNode = objectMapper.readTree(bodyNode.get("Message").asText());
+                }
+            } catch (JsonProcessingException jsonError) {
+                log.warn("Mensagem inválida recebida da fila. queueUrl={} reason=malformed_payload action=discard",
+                        queueUrl);
+                sqsClient.deleteMessage(DeleteMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .receiptHandle(message.receiptHandle())
+                        .build());
+                return;
             }
 
             if (!bodyNode.hasNonNull("diagramId") || bodyNode.get("diagramId").asText().isBlank()) {
-                log.warn("Mensagem inválida recebida da fila {} sem diagramId. A mensagem será descartada.", queueUrl);
+                log.warn("Mensagem inválida recebida da fila. queueUrl={} reason=missing_diagramId action=discard",
+                        queueUrl);
                 sqsClient.deleteMessage(DeleteMessageRequest.builder()
                         .queueUrl(queueUrl)
                         .receiptHandle(message.receiptHandle())
@@ -84,10 +97,20 @@ public class SqsPollerService {
             }
 
             String diagramId = bodyNode.get("diagramId").asText();
+            String eventType = bodyNode.hasNonNull("eventType") ? bodyNode.get("eventType").asText("") : "";
+            String correlationId = bodyNode.hasNonNull("correlationId") ? bodyNode.get("correlationId").asText("")
+                    : "";
+            String resolvedState = resolveTargetState(bodyNode, newState);
 
-            log.info("Updating status for diagram: {} to {}", diagramId, newState);
+            log.info(
+                    "Atualizando status do diagrama. diagramId={} eventType={} correlationId={} targetState={} queueUrl={}",
+                    diagramId,
+                    eventType,
+                    correlationId,
+                    resolvedState,
+                    queueUrl);
 
-            updateStatusUseCase.updateStatus(diagramId, newState);
+            updateStatusUseCase.updateStatus(diagramId, resolvedState);
 
             sqsClient.deleteMessage(DeleteMessageRequest.builder()
                     .queueUrl(queueUrl)
@@ -95,7 +118,15 @@ public class SqsPollerService {
                     .build());
 
         } catch (Exception e) {
-            log.error("Failed to process message from {}: {}", queueUrl, e.getMessage());
+            log.error("Falha ao processar mensagem da fila. queueUrl={} error={}", queueUrl, e.getMessage());
         }
+    }
+
+    private String resolveTargetState(JsonNode bodyNode, String defaultState) {
+        String eventType = bodyNode.hasNonNull("eventType") ? bodyNode.get("eventType").asText("") : "";
+        if (eventType != null && eventType.toUpperCase().endsWith("_FAILED")) {
+            return "ERROR";
+        }
+        return defaultState;
     }
 }

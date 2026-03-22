@@ -7,4 +7,6 @@ public interface StatusRepository {
     Status save(Status status);
 
     Optional<Status> findByDiagramId(String diagramId);
+
+    Optional<Status> findByDiagramIdForUpdate(String diagramId);
 }

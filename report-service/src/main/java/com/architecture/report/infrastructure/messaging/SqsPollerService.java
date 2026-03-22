@@ -1,6 +1,7 @@
 package com.architecture.report.infrastructure.messaging;
 
 import com.architecture.report.application.GenerateReportUseCase;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -42,23 +43,42 @@ public class SqsPollerService {
                 processMessage(message);
             }
         } catch (Exception e) {
-            log.error("Error polling SQS queue: {}", e.getMessage());
+            log.error("Erro ao consumir fila SQS. queueUrl={} error={}", queueUrl, e.getMessage());
         }
     }
 
     private void processMessage(Message message) {
         try {
-            JsonNode bodyNode = objectMapper.readTree(message.body());
+            JsonNode bodyNode;
+            try {
+                bodyNode = objectMapper.readTree(message.body());
 
-            // Handle SNS wrapper if present
-            if (bodyNode.has("Message")) {
-                bodyNode = objectMapper.readTree(bodyNode.get("Message").asText());
+                if (bodyNode.has("Message")) {
+                    bodyNode = objectMapper.readTree(bodyNode.get("Message").asText());
+                }
+            } catch (JsonProcessingException jsonError) {
+                log.warn(
+                        "Mensagem inválida recebida na fila de relatório. queueUrl={} reason=malformed_payload action=discard",
+                        queueUrl);
+                sqsClient.deleteMessage(DeleteMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .receiptHandle(message.receiptHandle())
+                        .build());
+                return;
             }
 
             if (!bodyNode.hasNonNull("diagramId") || bodyNode.get("diagramId").asText().isBlank()
                     || !bodyNode.has("analysis")) {
+                String diagramId = bodyNode.hasNonNull("diagramId") ? bodyNode.get("diagramId").asText("") : "";
+                String eventType = bodyNode.hasNonNull("eventType") ? bodyNode.get("eventType").asText("") : "";
+                String correlationId = bodyNode.hasNonNull("correlationId") ? bodyNode.get("correlationId").asText("")
+                        : "";
                 log.warn(
-                        "Mensagem inválida recebida na fila de relatório (sem diagramId/analysis). A mensagem será descartada.");
+                        "Mensagem inválida recebida na fila de relatório. diagramId={} eventType={} correlationId={} queueUrl={} reason=missing_diagramId_or_analysis action=discard",
+                        diagramId,
+                        eventType,
+                        correlationId,
+                        queueUrl);
                 sqsClient.deleteMessage(DeleteMessageRequest.builder()
                         .queueUrl(queueUrl)
                         .receiptHandle(message.receiptHandle())
@@ -68,8 +88,12 @@ public class SqsPollerService {
 
             String diagramId = bodyNode.get("diagramId").asText();
             String analysisData = bodyNode.get("analysis").toString();
+            String eventType = bodyNode.hasNonNull("eventType") ? bodyNode.get("eventType").asText("") : "";
+            String correlationId = bodyNode.hasNonNull("correlationId") ? bodyNode.get("correlationId").asText("") : "";
 
-            log.info("Received analysis for diagram: {}", diagramId);
+            log.info(
+                    "Recebida análise para geração de relatório. diagramId={} eventType={} correlationId={} queueUrl={}",
+                    diagramId, eventType, correlationId, queueUrl);
 
             generateReportUseCase.generateAndSaveReport(diagramId, analysisData);
 
@@ -80,7 +104,7 @@ public class SqsPollerService {
                     .build());
 
         } catch (Exception e) {
-            log.error("Failed to process message: {}", e.getMessage());
+            log.error("Falha ao processar mensagem de relatório. queueUrl={} error={}", queueUrl, e.getMessage());
         }
     }
 }

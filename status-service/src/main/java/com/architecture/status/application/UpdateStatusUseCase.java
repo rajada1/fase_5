@@ -20,12 +20,16 @@ public class UpdateStatusUseCase {
             throw new IllegalArgumentException("Estado de status inválido: " + state);
         }
 
-        Status status = statusRepository.findByDiagramId(diagramId).orElseGet(() -> Status.builder()
+        Status status = statusRepository.findByDiagramIdForUpdate(diagramId).orElseGet(() -> Status.builder()
                 .diagramId(diagramId)
                 .build());
 
         // Business Rule: Validate state transition
         if (status.getState() != null) {
+            if (status.getState().equalsIgnoreCase(state)) {
+                return;
+            }
+
             int currentOrder = getStatusOrder(status.getState());
             int newOrder = getStatusOrder(state);
 
@@ -44,7 +48,7 @@ public class UpdateStatusUseCase {
     @Transactional(readOnly = true)
     public Status getStatus(String diagramId) {
         return statusRepository.findByDiagramId(diagramId)
-                .orElseThrow(() -> new RuntimeException("Status não encontrado para o diagrama: " + diagramId));
+                .orElseThrow(() -> new StatusNotFoundException(diagramId));
     }
 
     private int getStatusOrder(String state) {
@@ -55,12 +59,10 @@ public class UpdateStatusUseCase {
                 return 0;
             case "PROCESSING":
                 return 1;
-            case "ANALYZING":
+            case "ANALYZED":
                 return 2;
-            case "COMPLETED":
+            case "ERROR":
                 return 3;
-            case "FAILED":
-                return 4;
             default:
                 throw new IllegalArgumentException("Estado de status inválido: " + state);
         }
@@ -72,9 +74,8 @@ public class UpdateStatusUseCase {
         switch (state.toUpperCase()) {
             case "RECEIVED":
             case "PROCESSING":
-            case "ANALYZING":
-            case "COMPLETED":
-            case "FAILED":
+            case "ANALYZED":
+            case "ERROR":
                 return true;
             default:
                 return false;

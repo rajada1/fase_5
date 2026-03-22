@@ -1,6 +1,6 @@
 # Visão Geral da Arquitetura
 
-Este diagrama representa o fluxo e a arquitetura para análise de diagramas de arquitetura de software usando IA. O sistema foi projetado em uma arquitetura de microsserviços, totalmente hospedado na AWS utilizando uma abordagem conteinerizada (ECS Fargate), comunicando-se via REST para tarefas síncronas e SQS/SNS para tarefas assíncronas.
+Este diagrama representa o fluxo e a arquitetura para análise de diagramas de arquitetura de software usando IA. O sistema foi projetado em uma arquitetura de microsserviços, totalmente hospedado na AWS utilizando uma abordagem conteinerizada (ECS Fargate), comunicando-se via REST para tarefas síncronas e SQS/SNS para tarefas assíncronas. O repositório segue o padrão **monorepo**, com pipelines de CI/CD orientados por mudança de caminho para build, teste e deploy por serviço.
 
 ## Fluxo do Sistema
 
@@ -85,3 +85,59 @@ Este diagrama representa o fluxo e a arquitetura para análise de diagramas de a
 * **Alta Disponibilidade (High Availability)**: Contêineres no ECS Fargate.
 * **Resiliência**: O SQS fornece filas de mensagens mortas (dead-letter queues) e mecanismos de repetição (retry) caso um serviço dependente falhe.
 * **Isolamento de Dados**: Padrão de banco-de-dados-por-serviço (database-per-service) implementado em todas as fronteiras lógicas.
+
+## Arquitetura de Entrega (CI/CD Monorepo)
+
+O processo de entrega contínua está dividido em dois workflows independentes no GitHub Actions:
+
+1. **`services-ci-cd.yml`**
+   - Acionado por alterações em caminhos de serviço (`api-gateway/**`, `upload-service/**`, `processing-service/**`, `ai-analysis-service/**`, `report-service/**`, `status-service/**`).
+   - Detecta quais serviços mudaram com *path filtering*.
+   - Executa build e testes apenas para os serviços alterados.
+   - Gera imagem Docker e publica no **Amazon ECR** usando tag do commit (`github.sha`).
+   - Atualiza a **Task Definition** e força novo deployment no **Amazon ECS (Fargate)** do serviço correspondente.
+
+2. **`terraform-infra.yml`**
+   - Acionado apenas quando há alteração em `terraform/**`.
+   - Executa `terraform init`, `fmt`, `validate`, `plan`.
+   - Executa `terraform apply` somente em `push` para `main`.
+
+### Configuração de Ambientes no Pipeline
+
+- `DEPLOY_ENV` é lido de **Repository Variables** e `AWS_REGION` de **Repository Secrets**.
+- Ambos workflows também aceitam `workflow_dispatch` com `deploy_env` para execução manual.
+- Credenciais AWS são obtidas por **OIDC** via `AWS_ROLE_ARN` (sem chaves estáticas no repositório).
+
+## Diagrama Textual do Fluxo de CI/CD
+
+```text
+            +-----------------------------+
+            | GitHub Repository (Monorepo)|
+            +---------------+-------------+
+                            |
+                            v
+                  +----------------------+
+                  | GitHub Actions       |
+                  | (Path-based trigger) |
+                  +----------+-----------+
+                             |
+               +-------------+------------------+
+               |                                |
+               v                                v
+   +---------------------------+      +--------------------------+
+   | services-ci-cd.yml        |      | terraform-infra.yml      |
+   | build/test por serviço    |      | plan/apply infra         |
+   +------------+--------------+      +-------------+------------+
+                |                                   |
+                v                                   v
+      +-----------------------+          +-----------------------+
+      | Amazon ECR            |          | AWS Infra (Terraform) |
+      | push imagem por svc   |          | VPC/RDS/ECS/ECR/...   |
+      +-----------+-----------+          +-----------------------+
+                  |
+                  v
+      +-----------------------+
+      | Amazon ECS Fargate    |
+      | update task + deploy  |
+      +-----------------------+
+```

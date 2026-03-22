@@ -25,6 +25,11 @@ aws:
   # Localstack configuration for local development
   endpoint: http://localhost:4566
 
+outbox:
+  publisher:
+    fixed-delay-ms: 5000
+    max-retries: 5
+
 management:
   endpoints:
     web:

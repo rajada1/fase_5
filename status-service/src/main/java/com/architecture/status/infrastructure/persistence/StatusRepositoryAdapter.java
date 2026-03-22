@@ -31,6 +31,11 @@ public class StatusRepositoryAdapter implements StatusRepository {
         return repository.findById(diagramId).map(this::toDomain);
     }
 
+    @Override
+    public Optional<Status> findByDiagramIdForUpdate(String diagramId) {
+        return repository.findByDiagramId(diagramId).map(this::toDomain);
+    }
+
     private Status toDomain(StatusEntity entity) {
         return Status.builder()
                 .diagramId(entity.getDiagramId())

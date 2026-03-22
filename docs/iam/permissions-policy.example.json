@@ -1,0 +1,77 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "EcrAuth",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "EcrPushPullProjectRepos",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeImages",
+                "ecr:DescribeRepositories",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+            ],
+            "Resource": [
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/api-gateway-prod",
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/upload-service-prod",
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/processing-service-prod",
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/ai-analysis-service-prod",
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/report-service-prod",
+                "arn:aws:ecr:us-east-1:ACCOUNT_ID:repository/status-service-prod"
+            ]
+        },
+        {
+            "Sid": "TerraformCoreInfra",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*",
+                "elasticloadbalancing:*",
+                "rds:*",
+                "s3:*",
+                "sns:*",
+                "sqs:*",
+                "logs:*",
+                "ecs:*",
+                "ecr:*",
+                "cognito-idp:*",
+                "iam:GetRole",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:TagRole",
+                "iam:UntagRole",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListRolePolicies"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "PassEcsRoles",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": [
+                "arn:aws:iam::ACCOUNT_ID:role/ecs_execution_role_prod",
+                "arn:aws:iam::ACCOUNT_ID:role/ecs_task_role_prod"
+            ],
+            "Condition": {
+                "StringEquals": {
+                    "iam:PassedToService": "ecs-tasks.amazonaws.com"
+                }
+            }
+        }
+    ]
+}

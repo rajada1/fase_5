@@ -24,148 +24,175 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class SqsPollerServiceTest {
 
-    @Mock
-    private SqsClient sqsClient;
+        @Mock
+        private SqsClient sqsClient;
 
-    @Mock
-    private UpdateStatusUseCase updateStatusUseCase;
+        @Mock
+        private UpdateStatusUseCase updateStatusUseCase;
 
-    @Test
-    void shouldDeleteMessageAndSkipProcessingWhenDiagramIdIsMissing() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+        @Test
+        void shouldDeleteMessageAndSkipProcessingWhenDiagramIdIsMissing() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        Message message = Message.builder()
-                .body("{\"eventType\":\"FILE_UPLOADED\"}")
-                .receiptHandle("receipt-123")
-                .build();
+                Message message = Message.builder()
+                                .body("{\"eventType\":\"FILE_UPLOADED\"}")
+                                .receiptHandle("receipt-123")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "PROCESSING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
-        verify(sqsClient)
-                .deleteMessage(org.mockito.ArgumentMatchers.argThat(matchesDeleteRequest("queue-url", "receipt-123")));
-    }
+                verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString());
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-123")));
+        }
 
-    @Test
-    void shouldProcessSnsWrappedPayloadWhenDiagramIdIsPresent() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+        @Test
+        void shouldProcessSnsWrappedPayloadWhenDiagramIdIsPresent() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        Message message = Message.builder()
-                .body("{\"Message\":\"{\\\"diagramId\\\":\\\"diag-123\\\"}\"}")
-                .receiptHandle("receipt-234")
-                .build();
+                Message message = Message.builder()
+                                .body("{\"Message\":\"{\\\"diagramId\\\":\\\"diag-123\\\"}\"}")
+                                .receiptHandle("receipt-234")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "PROCESSING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase).updateStatus("diag-123", "PROCESSING");
-        verify(sqsClient)
-                .deleteMessage(org.mockito.ArgumentMatchers.argThat(matchesDeleteRequest("queue-url", "receipt-234")));
-    }
+                verify(updateStatusUseCase).updateStatus("diag-123", "PROCESSING");
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-234")));
+        }
 
-    @Test
-    void shouldDeleteMessageAndSkipProcessingWhenDiagramIdIsBlank() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+        @Test
+        void shouldDeleteMessageAndSkipProcessingWhenDiagramIdIsBlank() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        Message message = Message.builder()
-                .body("{\"diagramId\":\"   \"}")
-                .receiptHandle("receipt-345")
-                .build();
+                Message message = Message.builder()
+                                .body("{\"diagramId\":\"   \"}")
+                                .receiptHandle("receipt-345")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "ANALYZING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
-        verify(sqsClient)
-                .deleteMessage(org.mockito.ArgumentMatchers.argThat(matchesDeleteRequest("queue-url", "receipt-345")));
-    }
+                verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString());
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-345")));
+        }
 
-    @Test
-    void shouldNotDeleteOrProcessWhenRootJsonIsMalformed() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+        @Test
+        void shouldNotDeleteOrProcessWhenRootJsonIsMalformed() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        Message message = Message.builder()
-                .body("{invalid-json")
-                .receiptHandle("receipt-901")
-                .build();
+                Message message = Message.builder()
+                                .body("{invalid-json")
+                                .receiptHandle("receipt-901")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "PROCESSING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
-        verify(sqsClient, never()).deleteMessage(org.mockito.ArgumentMatchers.any(DeleteMessageRequest.class));
-    }
+                verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString());
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-901")));
+        }
 
-    @Test
-    void shouldNotDeleteOrProcessWhenSnsWrappedJsonIsMalformed() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+        @Test
+        void shouldNotDeleteOrProcessWhenSnsWrappedJsonIsMalformed() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        Message message = Message.builder()
-                .body("{\"Message\":\"{not-valid}\"}")
-                .receiptHandle("receipt-902")
-                .build();
+                Message message = Message.builder()
+                                .body("{\"Message\":\"{not-valid}\"}")
+                                .receiptHandle("receipt-902")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "ANALYZING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
-        verify(sqsClient, never()).deleteMessage(org.mockito.ArgumentMatchers.any(DeleteMessageRequest.class));
-    }
+                verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString());
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-902")));
+        }
 
-    @Test
-    void shouldNotDeleteMessageWhenUpdateStatusThrows() throws Exception {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
-        doThrow(new RuntimeException("db unavailable"))
-                .when(updateStatusUseCase)
-                .updateStatus("diag-500", "PROCESSING");
+        @Test
+        void shouldNotDeleteMessageWhenUpdateStatusThrows() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+                doThrow(new RuntimeException("db unavailable"))
+                                .when(updateStatusUseCase)
+                                .updateStatus("diag-500", "PROCESSING");
 
-        Message message = Message.builder()
-                .body("{\"diagramId\":\"diag-500\"}")
-                .receiptHandle("receipt-905")
-                .build();
+                Message message = Message.builder()
+                                .body("{\"diagramId\":\"diag-500\"}")
+                                .receiptHandle("receipt-905")
+                                .build();
 
-        Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
-                String.class);
-        method.setAccessible(true);
-        method.invoke(service, message, "queue-url", "PROCESSING");
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "PROCESSING");
 
-        verify(updateStatusUseCase).updateStatus("diag-500", "PROCESSING");
-        verify(sqsClient, never()).deleteMessage(org.mockito.ArgumentMatchers.any(DeleteMessageRequest.class));
-    }
+                verify(updateStatusUseCase).updateStatus("diag-500", "PROCESSING");
+                verify(sqsClient, never()).deleteMessage(org.mockito.ArgumentMatchers.any(DeleteMessageRequest.class));
+        }
 
-    @Test
-    void shouldNotThrowWhenReceiveMessageFailsInPollQueue() {
-        SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
-        ReflectionTestUtils.setField(service, "uploadedQueueUrl", "queue-uploaded");
+        @Test
+        void shouldMapFailedEventToErrorState() throws Exception {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
 
-        when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
-                .thenThrow(new RuntimeException("sqs unavailable"));
+                Message message = Message.builder()
+                                .body("{\"diagramId\":\"diag-err\",\"eventType\":\"ANALYSIS_FAILED\"}")
+                                .receiptHandle("receipt-999")
+                                .build();
 
-        assertDoesNotThrow(service::pollUploadedQueue);
+                Method method = SqsPollerService.class.getDeclaredMethod("processMessage", Message.class, String.class,
+                                String.class);
+                method.setAccessible(true);
+                method.invoke(service, message, "queue-url", "ANALYZED");
 
-        verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
-                org.mockito.ArgumentMatchers.anyString());
-        verify(sqsClient, never()).deleteMessage(any(DeleteMessageRequest.class));
-    }
+                verify(updateStatusUseCase).updateStatus("diag-err", "ERROR");
+                verify(sqsClient)
+                                .deleteMessage(org.mockito.ArgumentMatchers
+                                                .argThat(matchesDeleteRequest("queue-url", "receipt-999")));
+        }
 
-    private ArgumentMatcher<DeleteMessageRequest> matchesDeleteRequest(String queueUrl, String receiptHandle) {
-        return request -> request != null
-                && queueUrl.equals(request.queueUrl())
-                && receiptHandle.equals(request.receiptHandle());
-    }
+        @Test
+        void shouldNotThrowWhenReceiveMessageFailsInPollQueue() {
+                SqsPollerService service = new SqsPollerService(sqsClient, updateStatusUseCase);
+                ReflectionTestUtils.setField(service, "uploadedQueueUrl", "queue-uploaded");
+
+                when(sqsClient.receiveMessage(any(ReceiveMessageRequest.class)))
+                                .thenThrow(new RuntimeException("sqs unavailable"));
+
+                assertDoesNotThrow(service::pollUploadedQueue);
+
+                verify(updateStatusUseCase, never()).updateStatus(org.mockito.ArgumentMatchers.anyString(),
+                                org.mockito.ArgumentMatchers.anyString());
+                verify(sqsClient, never()).deleteMessage(any(DeleteMessageRequest.class));
+        }
+
+        private ArgumentMatcher<DeleteMessageRequest> matchesDeleteRequest(String queueUrl, String receiptHandle) {
+                return request -> request != null
+                                && queueUrl.equals(request.queueUrl())
+                                && receiptHandle.equals(request.receiptHandle());
+        }
 }

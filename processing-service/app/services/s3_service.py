@@ -3,13 +3,18 @@ import os
 from app.core.config import settings
 
 def get_s3_client():
-    return boto3.client(
-        's3',
-        region_name=settings.AWS_REGION,
-        endpoint_url=settings.AWS_ENDPOINT_URL,
-        aws_access_key_id="test",
-        aws_secret_access_key="test"
-    )
+    client_args = {
+        "region_name": settings.AWS_REGION,
+    }
+
+    if settings.AWS_ENDPOINT_URL:
+        client_args["endpoint_url"] = settings.AWS_ENDPOINT_URL
+
+    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY:
+        client_args["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
+        client_args["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+
+    return boto3.client('s3', **client_args)
 
 def download_file(s3_key: str, local_path: str):
     s3 = get_s3_client()

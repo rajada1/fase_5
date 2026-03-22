@@ -4,5 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface SpringDataReportRepository extends JpaRepository<ReportEntity, String> {
-    Optional<ReportEntity> findByDiagramId(String diagramId);
+    Optional<ReportEntity> findTopByDiagramIdOrderByGeneratedAtDesc(String diagramId);
 }

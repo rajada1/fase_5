@@ -1,0 +1,82 @@
+groups:
+  - name: architecture-pipeline-alerts
+    rules:
+      - alert: ProcessingHighErrorRatio
+        expr: |
+          (
+            sum(rate(processing_messages_failed_total[5m]))
+            /
+            clamp_min(sum(rate(processing_messages_received_total[5m])), 0.0001)
+          ) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          service: processing-service
+        annotations:
+          summary: "processing-service com alta taxa de erro"
+          description: "A taxa de erro ficou acima de 2% por pelo menos 10 minutos."
+
+      - alert: AiAnalysisHighErrorRatio
+        expr: |
+          (
+            sum(rate(ai_analysis_messages_failed_total[5m]))
+            /
+            clamp_min(sum(rate(ai_analysis_messages_received_total[5m])), 0.0001)
+          ) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-analysis-service
+        annotations:
+          summary: "ai-analysis-service com alta taxa de erro"
+          description: "A taxa de erro ficou acima de 2% por pelo menos 10 minutos."
+
+      - alert: ProcessingNoThroughput
+        expr: sum(rate(processing_messages_received_total[10m])) == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: processing-service
+        annotations:
+          summary: "processing-service sem throughput"
+          description: "Nenhuma mensagem recebida no processing-service por 15 minutos."
+
+      - alert: AiAnalysisNoThroughput
+        expr: sum(rate(ai_analysis_messages_received_total[10m])) == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: ai-analysis-service
+        annotations:
+          summary: "ai-analysis-service sem throughput"
+          description: "Nenhuma mensagem recebida no ai-analysis-service por 15 minutos."
+
+      - alert: ProcessingExcessiveDeduplication
+        expr: |
+          (
+            sum(rate(processing_messages_deduped_total[10m]))
+            /
+            clamp_min(sum(rate(processing_messages_received_total[10m])), 0.0001)
+          ) > 0.50
+        for: 15m
+        labels:
+          severity: warning
+          service: processing-service
+        annotations:
+          summary: "processing-service com deduplicação elevada"
+          description: "Mais de 50% das mensagens recebidas estão sendo deduplicadas por 15 minutos."
+
+      - alert: AiAnalysisExcessiveDeduplication
+        expr: |
+          (
+            sum(rate(ai_analysis_messages_deduped_total[10m]))
+            /
+            clamp_min(sum(rate(ai_analysis_messages_received_total[10m])), 0.0001)
+          ) > 0.50
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-analysis-service
+        annotations:
+          summary: "ai-analysis-service com deduplicação elevada"
+          description: "Mais de 50% das mensagens recebidas estão sendo deduplicadas por 15 minutos."

@@ -1,7 +1,7 @@
 package com.architecture.upload.application;
 
 import com.architecture.upload.application.ports.DiagramRepository;
-import com.architecture.upload.application.ports.MessagingService;
+import com.architecture.upload.application.ports.OutboxService;
 import com.architecture.upload.application.ports.StorageService;
 import com.architecture.upload.domain.Diagram;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +22,11 @@ public class UploadUseCase {
 
     private final StorageService storageService;
     private final DiagramRepository diagramRepository;
-    private final MessagingService messagingService;
+    private final OutboxService outboxService;
 
     @Transactional
     public Diagram uploadDiagram(String originalFileName, InputStream fileStream, long contentLength,
-            String contentType) {
+            String contentType, String correlationId) {
         String diagramId = UUID.randomUUID().toString();
 
         // Determina a extensão de forma segura baseada no Content-Type em vez do nome
@@ -66,8 +66,8 @@ public class UploadUseCase {
                 .build();
         diagramRepository.save(diagram);
 
-        // 3. Publish Event
-        messagingService.publishFileUploadedEvent(diagramId, s3Key);
+        // 3. Enqueue Event in Transactional Outbox
+        outboxService.enqueueFileUploadedEvent(diagramId, s3Key, correlationId);
 
         return diagram;
     }

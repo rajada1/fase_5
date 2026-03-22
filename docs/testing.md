@@ -30,10 +30,10 @@ Use o `diagramId` recebido na etapa de upload.
 curl -X GET http://localhost:8080/api/v1/status/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="
 ```
-**Saída Esperada**: O estado avança de `PROCESSING` -> `ANALYZING` -> `COMPLETED`.
+**Saída Esperada**: O estado avança para `PROCESSING` e finaliza em `ANALYZED` (ou `ERROR` em caso de falha).
 
 ## 5. Buscar o Relatório Final
-Assim que o status estiver `COMPLETED`, busque o relatório de arquitetura gerado pela IA:
+Assim que o status estiver `ANALYZED`, busque o relatório de arquitetura gerado pela IA:
 ```bash
 curl -X GET http://localhost:8080/api/v1/reports/{diagramId} \
   -H "Authorization: Basic YWRtaW46cGFzc3dvcmQ="

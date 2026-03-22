@@ -28,7 +28,7 @@ public class ReportRepositoryAdapter implements ReportRepository {
 
     @Override
     public Optional<Report> findByDiagramId(String diagramId) {
-        return repository.findByDiagramId(diagramId).map(this::toDomain);
+        return repository.findTopByDiagramIdOrderByGeneratedAtDesc(diagramId).map(this::toDomain);
     }
 
     private Report toDomain(ReportEntity entity) {

@@ -41,6 +41,6 @@ public class GenerateReportUseCase {
     @Transactional(readOnly = true)
     public Report getReportByDiagramId(String diagramId) {
         return reportRepository.findByDiagramId(diagramId)
-                .orElseThrow(() -> new RuntimeException("Relatório não encontrado para o diagrama: " + diagramId));
+                .orElseThrow(() -> new ReportNotFoundException(diagramId));
     }
 }

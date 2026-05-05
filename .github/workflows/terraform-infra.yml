@@ -2,12 +2,12 @@ name: Terraform Infrastructure
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["main"]
     paths:
       - "terraform/**"
       - ".github/workflows/terraform-infra.yml"
   pull_request:
-    branches: ["dev"]
+    branches: ["main"]
     paths:
       - "terraform/**"
       - ".github/workflows/terraform-infra.yml"
@@ -69,7 +69,7 @@ jobs:
 
       - name: Terraform Apply
         if: |
-          (github.event_name == 'push' && github.ref == 'refs/heads/dev') ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
           (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}

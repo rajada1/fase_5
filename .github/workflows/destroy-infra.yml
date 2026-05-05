@@ -1,0 +1,78 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'destroy' to confirm deletion of ALL AWS resources"
+        required: true
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+
+permissions:
+  contents: read
+
+jobs:
+  destroy:
+    name: Destroy All AWS Resources
+    runs-on: ubuntu-latest
+    if: inputs.confirm == 'destroy'
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Destroy
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+        run: terraform destroy -input=false -auto-approve
+
+      - name: Summary
+        run: |
+          echo "============================================"
+          echo "  ALL RESOURCES DESTROYED"
+          echo "============================================"
+          echo ""
+          echo "The following were removed:"
+          echo "  - ECS Cluster + 6 services"
+          echo "  - ALB"
+          echo "  - RDS PostgreSQL"
+          echo "  - S3 Bucket"
+          echo "  - SNS Topics + SQS Queues"
+          echo "  - ECR Repositories"
+          echo "  - VPC + Subnets"
+          echo "  - Cognito User Pool"
+          echo "  - Cloud Map namespace"
+          echo ""
+          echo "State bucket (architecture-tf-state-177515264693) was NOT deleted."
+          echo "To remove it manually: aws s3 rb s3://architecture-tf-state-177515264693 --force"
+          echo "============================================"
+
+  reject:
+    name: Confirmation Failed
+    runs-on: ubuntu-latest
+    if: inputs.confirm != 'destroy'
+    steps:
+      - name: Abort
+        run: |
+          echo "❌ Destroy cancelled. You must type 'destroy' to confirm."
+          exit 1

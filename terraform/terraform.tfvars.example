@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in the values
+# DO NOT commit terraform.tfvars to git!
+
+aws_region    = "us-east-1"
+environment   = "dev"
+db_username   = "postgres"
+db_password   = "CHANGE_ME_STRONG_PASSWORD"
+gemini_api_key = ""   # Será preenchido pela equipe IADT quando integrar
+use_free_tier  = true

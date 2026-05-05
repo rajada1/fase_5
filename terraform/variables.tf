@@ -23,18 +23,20 @@ variable "db_password" {
 }
 
 variable "gemini_api_key" {
-  description = "Gemini API key"
+  description = "Gemini API key for AI analysis service (provisioned by IADT team)"
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "cognito_user_pool_id" {
-  description = "Cognito User Pool ID used by API Gateway"
-  type        = string
-}
-
-variable "redis_url" {
-  description = "Redis URL for distributed deduplication in Python workers"
+  description = "Cognito User Pool ID (auto-created if empty)"
   type        = string
   default     = ""
+}
+
+variable "use_free_tier" {
+  description = "Optimize for AWS Free Tier (single-AZ RDS, no NAT, minimal resources)"
+  type        = bool
+  default     = true
 }

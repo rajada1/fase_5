@@ -11,19 +11,18 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
 
 aws:
-  region: us-east-1
+  region: ${AWS_REGION:us-east-1}
   s3:
-    bucket-name: architecture-diagrams-dev
+    bucket-name: ${AWS_S3_BUCKET_NAME:architecture-diagrams-dev}
   sns:
-    file-uploaded-topic-arn: arn:aws:sns:us-east-1:000000000000:file-uploaded-topic-dev
-  # Localstack configuration for local development
-  endpoint: http://localhost:4566
+    file-uploaded-topic-arn: ${AWS_SNS_FILE_UPLOADED_TOPIC_ARN:arn:aws:sns:us-east-1:000000000000:file-uploaded-topic-dev}
+  endpoint: ${AWS_ENDPOINT:}
 
 outbox:
   publisher:
@@ -35,3 +34,29 @@ management:
     web:
       exposure:
         include: health,info,prometheus,metrics
+
+---
+# Local development profile
+spring:
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    show-sql: true
+
+aws:
+  endpoint: http://localhost:4566
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+
+aws:
+  endpoint: ""

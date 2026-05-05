@@ -1,4 +1,0 @@
-com\architecture\gateway\FallbackController.class
-com\architecture\gateway\ApiGatewayApplication.class
-com\architecture\gateway\config\SecurityConfig.class
-com\architecture\gateway\config\RateLimiterConfig.class

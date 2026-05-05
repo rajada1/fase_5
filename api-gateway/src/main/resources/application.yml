@@ -17,7 +17,7 @@ spring:
     gateway:
       routes:
         - id: upload-service
-          uri: http://localhost:8081
+          uri: ${UPLOAD_SERVICE_URL:http://localhost:8081}
           predicates:
             - Path=/api/v1/upload/**
           filters:
@@ -30,7 +30,7 @@ spring:
                 redis-rate-limiter.replenishRate: 10
                 redis-rate-limiter.burstCapacity: 20
         - id: report-service
-          uri: http://localhost:8084
+          uri: ${REPORT_SERVICE_URL:http://localhost:8084}
           predicates:
             - Path=/api/v1/reports/**
           filters:
@@ -39,7 +39,7 @@ spring:
                 name: reportServiceCB
                 fallbackUri: forward:/fallback/report
         - id: status-service
-          uri: http://localhost:8085
+          uri: ${STATUS_SERVICE_URL:http://localhost:8085}
           predicates:
             - Path=/api/v1/status/**
           filters:
@@ -78,3 +78,14 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+
+---
+# Production profile - services communicate via ECS Service Connect / Cloud Map
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+app:
+  security:
+    allow-insecure-local-api: false

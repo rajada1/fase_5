@@ -56,7 +56,7 @@ def test_should_use_redis_set_nx_ex_when_configured(mocker):
     result = dedupe_service.should_skip_duplicate("diag-redis", 60)
 
     assert result is False
-    redis_client.set.assert_called_once_with("dedupe:diagram:diag-redis", "1", ex=60, nx=True)
+    redis_client.set.assert_called_once_with("dedupe:processing:diagram:diag-redis", "1", ex=60, nx=True)
     stats = dedupe_service.get_stats()
     assert stats["total"] == 1
     assert stats["redis_backend"] == 1

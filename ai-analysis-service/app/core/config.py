@@ -1,6 +1,7 @@
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     AWS_ENDPOINT_URL: str = ""
@@ -14,19 +15,12 @@ class Settings(BaseSettings):
         default="arn:aws:sns:us-east-1:000000000000:analysis-completed-topic-dev",
         validation_alias=AliasChoices("AI_ANALYSIS_SNS_TOPIC_ARN", "SNS_TOPIC_ARN"),
     )
-    GEMINI_API_KEY: str = Field(
-        default="",
-        validation_alias=AliasChoices("GEMINI_API_KEY"),
-    )
-    GEMINI_MODEL: str = Field(
-        default="gemini-pro",
-        validation_alias=AliasChoices("GEMINI_MODEL"),
-    )
     LLM_INPUT_MAX_CHARS: int = 12000
     DEDUPE_WINDOW_SECONDS: int = 300
     DEDUPE_KEY_PREFIX: str = "ai-analysis"
     REDIS_URL: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
 
 settings = Settings()

@@ -11,19 +11,40 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
 
 aws:
-  region: us-east-1
+  region: ${AWS_REGION:us-east-1}
   sqs:
-    file-uploaded-queue-url: http://localhost:4566/000000000000/status-file-uploaded-queue-dev
-    diagram-processed-queue-url: http://localhost:4566/000000000000/status-diagram-processed-queue-dev
-    analysis-completed-queue-url: http://localhost:4566/000000000000/status-analysis-completed-queue-dev
-  # Localstack configuration for local development
-  endpoint: http://localhost:4566
+    file-uploaded-queue-url: ${AWS_SQS_FILE_UPLOADED_QUEUE_URL:http://localhost:4566/000000000000/status-file-uploaded-queue-dev}
+    diagram-processed-queue-url: ${AWS_SQS_DIAGRAM_PROCESSED_QUEUE_URL:http://localhost:4566/000000000000/status-diagram-processed-queue-dev}
+    analysis-completed-queue-url: ${AWS_SQS_ANALYSIS_COMPLETED_QUEUE_URL:http://localhost:4566/000000000000/status-analysis-completed-queue-dev}
+  endpoint: ${AWS_ENDPOINT:}
 
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus,metrics
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  jpa:
+    show-sql: true
+
+aws:
+  endpoint: http://localhost:4566
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+
+aws:
+  endpoint: ""

@@ -1,7 +1,10 @@
-# alb.tf
+# alb.tf - Application Load Balancer
+# NOTE: ALB is NOT part of AWS Free Tier (~$16/month + data transfer)
+# It's required for routing traffic to ECS services.
+# Alternative: Use a single EC2 t2.micro with nginx (free tier) but loses container orchestration.
 
 resource "aws_lb" "main" {
-  name               = "architecture-alb-${var.environment}"
+  name               = "arch-alb-${var.environment}"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -14,8 +17,9 @@ resource "aws_lb" "main" {
   }
 }
 
+# Target Group for API Gateway service
 resource "aws_lb_target_group" "api_gateway" {
-  name        = "api-gateway-tg-${var.environment}"
+  name        = "api-gw-tg-${var.environment}"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -24,13 +28,19 @@ resource "aws_lb_target_group" "api_gateway" {
   health_check {
     path                = "/actuator/health"
     healthy_threshold   = 2
-    unhealthy_threshold = 10
-    timeout             = 5
-    interval            = 10
+    unhealthy_threshold = 5
+    timeout             = 10
+    interval            = 30
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "api-gateway-tg-${var.environment}"
   }
 }
 
-resource "aws_lb_listener" "front_end" {
+# HTTP Listener
+resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
   protocol          = "HTTP"

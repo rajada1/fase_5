@@ -86,6 +86,26 @@ Este diagrama representa o fluxo e a arquitetura para análise de diagramas de a
 * **Resiliência**: O SQS fornece filas de mensagens mortas (dead-letter queues) e mecanismos de repetição (retry) caso um serviço dependente falhe.
 * **Isolamento de Dados**: Padrão de banco-de-dados-por-serviço (database-per-service) implementado em todas as fronteiras lógicas.
 
+## Otimizações para AWS Free Tier
+
+Para manter os custos mínimos durante o desenvolvimento e apresentação:
+
+| Decisão | Justificativa |
+|---------|---------------|
+| Sem NAT Gateway | ECS tasks em subnets públicas com `assign_public_ip = true` (~$32/mês economizados) |
+| RDS Single-AZ | `db.t3.micro` Single-AZ é Free Tier por 12 meses |
+| Sem Redis | Deduplicação in-memory (suficiente para MVP com 1 instância por serviço) |
+| ECS 256 CPU / 512 MB | Configuração mínima do Fargate para reduzir custo |
+| 1 réplica por serviço | Suficiente para demonstração |
+| ECR Lifecycle Policy | Mantém apenas 3 imagens por repositório (500MB free) |
+| CloudWatch 7 dias | Retenção mínima para ficar dentro dos 5GB free |
+| Service Discovery (Cloud Map) | Comunicação inter-serviço sem ALB interno (custo ~$0) |
+
+### Serviços que NÃO são Free Tier
+- **ECS Fargate**: ~$50-70/mês (6 tasks com recursos mínimos)
+- **ALB**: ~$16/mês + data transfer
+- **Total**: ~$70-90/mês (proporcional ao tempo de uso)
+
 ## Arquitetura de Entrega (CI/CD Monorepo)
 
 O processo de entrega contínua está dividido em dois workflows independentes no GitHub Actions:

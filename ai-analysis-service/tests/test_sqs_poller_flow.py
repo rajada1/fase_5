@@ -16,15 +16,12 @@ class StubSqs:
     def receive_message(self, **kwargs):
         if self._delivered:
             return {}
-
         self._delivered = True
         return {
-            "Messages": [
-                {
-                    "ReceiptHandle": "receipt-1",
-                    "Body": self.body_payload,
-                }
-            ]
+            "Messages": [{
+                "ReceiptHandle": "receipt-1",
+                "Body": self.body_payload,
+            }]
         }
 
     def delete_message(self, **kwargs):
@@ -41,7 +38,8 @@ def test_start_polling_success_path_should_publish_completed_and_delete(mocker):
     body = json.dumps({
         "Message": json.dumps({
             "diagramId": "diag-300",
-            "extractedData": "API Gateway | RDS",
+            "s3Key": "diagrams/diag-300.png",
+            "s3Bucket": "my-bucket",
             "eventType": "DIAGRAM_PROCESSED"
         })
     })
@@ -55,7 +53,7 @@ def test_start_polling_success_path_should_publish_completed_and_delete(mocker):
 
     _run_until_cancelled(mocker)
 
-    mock_analyze.assert_called_once_with("API Gateway | RDS")
+    mock_analyze.assert_called_once_with("diagrams/diag-300.png", "my-bucket")
     mock_publish_ok.assert_called_once_with("diag-300", mock_result, None)
     assert len(sqs.deleted) == 1
 
@@ -64,7 +62,8 @@ def test_start_polling_non_retryable_error_should_publish_failed_and_delete(mock
     body = json.dumps({
         "Message": json.dumps({
             "diagramId": "diag-400",
-            "extractedData": "texto",
+            "s3Key": "diagrams/diag-400.png",
+            "s3Bucket": "my-bucket",
             "eventType": "DIAGRAM_PROCESSED"
         })
     })

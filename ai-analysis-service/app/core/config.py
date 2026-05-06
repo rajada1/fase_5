@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     AWS_ENDPOINT_URL: str = ""
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
+    S3_BUCKET_NAME: str = "architecture-diagrams-dev"
     SQS_QUEUE_URL: str = Field(
         default="http://localhost:4566/000000000000/diagram-processed-queue-dev",
         validation_alias=AliasChoices("AI_ANALYSIS_SQS_QUEUE_URL", "SQS_QUEUE_URL"),

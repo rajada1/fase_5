@@ -1,11 +1,14 @@
 """
-Serviço de análise de arquitetura via LLM.
+Serviço de análise de arquitetura via IA.
 
 === CONTRATO DE INTEGRAÇÃO (para equipe IADT) ===
 
 INPUT:
-    extracted_data (str): Texto extraído do diagrama de arquitetura (OCR).
-                          Já sanitizado, máximo de LLM_INPUT_MAX_CHARS caracteres.
+    s3_key (str):    Chave do arquivo no S3 (ex: "diagrams/uuid.png")
+    s3_bucket (str): Nome do bucket S3
+
+    O arquivo pode ser uma imagem (PNG, JPG) ou PDF de um diagrama de arquitetura.
+    A equipe IADT decide como processar: OCR, visão computacional, LLM multimodal, etc.
 
 OUTPUT:
     AnalysisResult com:
@@ -18,19 +21,16 @@ OUTPUT:
         - recommendations: List[str]  → Recomendações de melhoria
 
 ERROS:
-    - NonRetryableAnalysisError: Erro permanente (payload inválido, quota, etc.)
+    - NonRetryableAnalysisError: Erro permanente (arquivo inválido, quota, etc.)
       → Mensagem é descartada da fila e evento de falha é publicado.
     - Qualquer outra Exception: Erro transitório (timeout, rate limit, etc.)
       → Mensagem volta para a fila e será reprocessada (max 3 tentativas antes de DLQ).
 
-EXEMPLO DE RESPOSTA ESPERADA:
-    AnalysisResult(
-        components=["API Gateway", "Load Balancer", "Database PostgreSQL"],
-        risks=[
-            Risk(type="single_point_of_failure", description="Banco sem réplica", severity="high"),
-        ],
-        recommendations=["Adicionar réplica de leitura ao banco de dados"],
-    )
+COMO BAIXAR O ARQUIVO DO S3:
+    import boto3
+    s3 = boto3.client('s3', region_name='us-east-1')
+    response = s3.get_object(Bucket=s3_bucket, Key=s3_key)
+    file_bytes = response['Body'].read()
 """
 
 import logging
@@ -45,32 +45,23 @@ class NonRetryableAnalysisError(Exception):
     pass
 
 
-def analyze_architecture(extracted_data: str) -> AnalysisResult:
+def analyze_architecture(s3_key: str, s3_bucket: str) -> AnalysisResult:
     """
-    Analisa texto extraído de um diagrama de arquitetura e retorna
-    componentes, riscos e recomendações.
+    Analisa um diagrama de arquitetura armazenado no S3.
 
     TODO: Substituir este stub pela implementação real da equipe IADT.
-    A implementação pode usar qualquer LLM/modelo (Gemini, OpenAI, Bedrock, etc.)
-    desde que retorne um AnalysisResult válido.
+    A implementação deve:
+    1. Baixar o arquivo do S3 (s3_key, s3_bucket)
+    2. Processar o arquivo (OCR, visão computacional, LLM, etc.)
+    3. Retornar um AnalysisResult com componentes, riscos e recomendações
     """
-    if not extracted_data or not extracted_data.strip():
-        raise NonRetryableAnalysisError("Texto extraído vazio ou inválido para análise.")
-
-    # Truncar input se necessário
-    safe_data = extracted_data.strip()
-    if len(safe_data) > settings.LLM_INPUT_MAX_CHARS:
-        logger.warning(
-            "Texto extraído muito longo (%d chars). Truncando para %d.",
-            len(safe_data),
-            settings.LLM_INPUT_MAX_CHARS,
-        )
-        safe_data = safe_data[: settings.LLM_INPUT_MAX_CHARS]
+    if not s3_key:
+        raise NonRetryableAnalysisError("s3_key vazio ou inválido.")
 
     logger.info(
-        "Análise solicitada para texto com %d caracteres. "
+        "Análise solicitada para arquivo s3://%s/%s. "
         "STUB ativo — aguardando implementação da equipe IADT.",
-        len(safe_data),
+        s3_bucket, s3_key,
     )
 
     # =========================================================

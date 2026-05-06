@@ -1,0 +1,11 @@
+use after deploy
+
+
+# Criar usuário
+aws cognito-idp admin-create-user --user-pool-id us-east-1_1VbwRgDjv --username test@test.com --user-attributes Name=email,Value=test@test.com --temporary-password TempPass1
+
+# Definir senha permanente
+aws cognito-idp admin-set-user-password --user-pool-id us-east-1_1VbwRgDjv --username test@test.com --password TestPass123 --permanent
+
+# Obter token
+aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id 40jvg7gillqbikqv9cer8a3ojl --auth-parameters USERNAME=test@test.com,PASSWORD=TestPass123

@@ -8,6 +8,9 @@ app:
 spring:
   application:
     name: api-gateway
+  cloud:
+    discovery:
+      enabled: false
   security:
     oauth2:
       resourceserver:
@@ -78,6 +81,11 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+  health:
+    redis:
+      enabled: false
+    discovery:
+      enabled: false
 
 ---
 # Production profile - services communicate via ECS Service Connect / Cloud Map

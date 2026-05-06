@@ -11,12 +11,6 @@ spring:
   cloud:
     discovery:
       enabled: false
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://cognito-idp.${AWS_REGION:us-east-1}.amazonaws.com/${COGNITO_USER_POOL_ID:mock-pool-id}
-  cloud:
     gateway:
       routes:
         - id: upload-service
@@ -54,6 +48,11 @@ spring:
               args:
                 redis-rate-limiter.replenishRate: 5
                 redis-rate-limiter.burstCapacity: 10
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://cognito-idp.${AWS_REGION:us-east-1}.amazonaws.com/${COGNITO_USER_POOL_ID:mock-pool-id}
 
 resilience4j:
   circuitbreaker:
@@ -84,11 +83,8 @@ management:
   health:
     redis:
       enabled: false
-    discovery:
-      enabled: false
 
 ---
-# Production profile - services communicate via ECS Service Connect / Cloud Map
 spring:
   config:
     activate:

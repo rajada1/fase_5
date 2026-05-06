@@ -1,3 +1,0 @@
-{"id":"1ce64299-8fb8-4a0f-b1d0-2c975d3af76c","diagramId":"1f94fb97-622a-47bb-9cb2-40a3425c80b9","content":"{\"components\":[\"Load Balancer\",\"Web Server\",\"Database\"],\"risks\":[{\"type\":\"SPOF\",\"description\":\"Single instance database detected.\",\"severity\":null,\"mitigation\":null},{\"type\":\"SECURITY\",\"description\":\"Public subnet for database is not recommended.\",\"severity\":null,\"mitigation\":null}],\"recommendations\":[\"Migrate database to Multi-AZ RDS.\",\"Use Private Subnets for database instances.\"]}","generatedAt":"2026-03-22T18:47:09.721102"}
-
-HTTP_STATUS: 200

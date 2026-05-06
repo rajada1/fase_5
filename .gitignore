@@ -37,3 +37,12 @@ volume/
 
 # Logs
 *.log
+
+# Test outputs
+test_results*.txt
+*_results.txt
+*_output.txt
+pytest_out.txt
+
+# Scripts locais desnecessários
+*.ps1

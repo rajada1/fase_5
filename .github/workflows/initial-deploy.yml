@@ -12,7 +12,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECS_CLUSTER: architecture-cluster-dev
-  ECR_REGISTRY: 177515264693.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REGISTRY: 639642128870.dkr.ecr.us-east-1.amazonaws.com
 
 permissions:
   contents: read
@@ -50,7 +50,7 @@ jobs:
             --requires-compatibilities FARGATE \
             --cpu 256 \
             --memory 512 \
-            --execution-role-arn "arn:aws:iam::177515264693:role/ecs-execution-role-dev" \
+            --execution-role-arn "arn:aws:iam::639642128870:role/ecs-execution-role-dev" \
             --container-definitions "[{
               \"name\": \"db-init\",
               \"image\": \"postgres:15-alpine\",

@@ -63,8 +63,8 @@ jobs:
           echo "  - Cognito User Pool"
           echo "  - Cloud Map namespace"
           echo ""
-          echo "State bucket (architecture-tf-state-177515264693) was NOT deleted."
-          echo "To remove it manually: aws s3 rb s3://architecture-tf-state-177515264693 --force"
+          echo "State bucket (architecture-tf-state-639642128870) was NOT deleted."
+          echo "To remove it manually: aws s3 rb s3://architecture-tf-state-639642128870 --force"
           echo "============================================"
 
   reject:

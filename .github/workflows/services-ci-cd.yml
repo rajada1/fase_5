@@ -31,7 +31,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECS_CLUSTER: architecture-cluster-dev
-  ECR_REGISTRY: 177515264693.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REGISTRY: 639642128870.dkr.ecr.us-east-1.amazonaws.com
 
 permissions:
   contents: read

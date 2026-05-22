@@ -14,7 +14,7 @@ terraform {
 
   # S3 backend for remote state management
   backend "s3" {
-    bucket         = "architecture-tf-state-177515264693"
+    bucket         = "architecture-tf-state-639642128870"
     key            = "infra/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "terraform-locks"
